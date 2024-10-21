@@ -8,8 +8,8 @@ from .blofin_apis import BlofinApis
 
 class LineBreak:
     def __init__(self, interval, lines, symbol):
-        self.num_lines = lines
-        self.interval = interval
+        self.num_lines = int(lines)
+        self.interval = int(interval)
         self.symbol = symbol
         self.candlestick_data = []
         self.linebreak_data = []

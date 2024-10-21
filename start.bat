@@ -1,2 +1,2 @@
-python main/multi.py
+python -m get-blofin.workflow
 pause

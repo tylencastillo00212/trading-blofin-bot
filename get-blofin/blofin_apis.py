@@ -107,7 +107,7 @@ class BlofinApis:
             if response.status_code == 200:
                 tickers = response.json()
                 last_price = tickers['data'][0]['last']
-                self.last_price = last_price
+                self.last_price = float(last_price)
             else:
                 print('No price data returned')
             return self.last_price

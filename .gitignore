@@ -1,3 +1,5 @@
 .env
 .prettierrc
 data/
+get-blofin/__pycache__/
+.venv/
