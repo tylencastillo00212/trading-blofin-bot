@@ -99,9 +99,6 @@ class BlofinApis:
             if not coin_name:
                 raise ValueError("The 'coin_name' parameter is required.")
 
-            if coin_name not in self.coins:
-                raise ValueError(f"Invalid 'coin_name': {coin_name}. It must be one of the following: {', '.join(self.coins)}")
-
             url = self.base_url + 'tickers'
         
             params = { 'instId': coin_name }
@@ -117,9 +114,10 @@ class BlofinApis:
                 
         except Exception as e:
             print("An error occurred:", e)
-        
+
+# Use cases        
 # blofin = BlofinApis()
 # blofin.get_coins_list()
 # data = blofin.get_coins_data("BTC-USDT")
 # lastprice = blofin.get_tick_price("BTC-USDT")
-# print(f'Last Price: {data}')
+# print(f'Last Price: {lastprice}')

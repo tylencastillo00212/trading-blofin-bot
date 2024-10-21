@@ -7,7 +7,7 @@ from pathlib import Path
 from .blofin_apis import BlofinApis
 
 class LineBreak:
-    def __init__(self, lines, interval, symbol):
+    def __init__(self, interval, lines, symbol):
         self.num_lines = lines
         self.interval = interval
         self.symbol = symbol
@@ -181,7 +181,7 @@ class LineBreak:
         
         linebreak_df = pd.DataFrame(self.linebreak_data, columns=self.columns)
         if exist: 
-            print(f'--Some Lines are dropped: {linebreak_df.iloc[self.num_lines-1]}--')
+            # print(f'--Some Lines are dropped: {linebreak_df.iloc[self.num_lines-1]}--')
             linebreak_df = linebreak_df.iloc[self.num_lines:]
         linebreak_df.to_csv(self.export_path, mode='a', header=(exist == 0), index=False)
         print(f'--Successfully calculated the {self.interval}m {self.num_lines} linebreak data--')

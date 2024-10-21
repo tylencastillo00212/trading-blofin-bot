@@ -6,13 +6,12 @@ from dotenv import load_dotenv
 from .blofin_apis import BlofinApis
 
 class GetTrend:
-    def __init__(self, time_interval, currency):
-        env_path = Path('..') / '.env'
+    def __init__(self, time_interval, linebreak_num, currency):
+        base_path = Path(__file__).resolve().parent.parent
+        env_path = base_path / '.env'
         load_dotenv(env_path)
-        linebreak_num = os.getenv('LINEBREAK_NUM')
-        time_interval = os.getenv('TIME_INTERVAL')
-        data_path = Path('..') / 'data' / 'linebreak' / f'{time_interval}_{linebreak_num}_{currency}.csv'
-        self.export_path = Path('..') / 'data' / 'trend' / f'{currency}.csv'
+        data_path = base_path / 'data' / 'linebreak' / f'{time_interval}m-{linebreak_num}linebreak-{currency}.csv'
+        self.export_path = base_path / 'data' / 'horlines' / f'lines-{time_interval}m-{linebreak_num}linebreak-{currency}.csv'
         
         df = pd.read_csv(data_path)
         self.df = df
@@ -61,9 +60,8 @@ class GetTrend:
         distint_list = self.distint_lines
         counts = []
         for i in distint_list:
-            print(f'the value is {i}')
             count = line_data.count(i)
-            print(f'the count is {count}')
+            print(f'the value is {i} the count is {count}')
             counts.append(count)
         self.counts = counts
         return counts
@@ -72,14 +70,6 @@ class GetTrend:
         self.get()
         self.distint()
         self.count_distint()
-
-        with open('list.csv', 'w', newline='') as file:
-            writer = csv.writer(file)
-
-            writer.writerow(['value'])
-
-            for value in self.lines:
-                writer.writerow([value])
 
         with open(self.export_path, 'w', newline='') as file:
             writer = csv.writer(file)
@@ -91,4 +81,35 @@ class GetTrend:
                 
     def get_trend(self):
         price = self.blofin_api.get_tick_price(self.currency)
+        lower_index = None
+        higher_index = None
+
+        # Find closest indices
+        for i, value in enumerate(self.distint_lines):
+            if value < price:
+                lower_index = i
+            elif value > price and not higher_index:
+                higher_index = i
+                break  # Break as soon as we find the first greater value
+
+        closest_values = []
+    
+        # Get the closest smaller value and its predecessor (if it exists)
+        if lower_index is not None:
+            closest_values.append(self.distint_lines[lower_index])
+            if lower_index > 0:
+                closest_values.insert(0, self.distint_lines[lower_index - 1])  # Predecessor
         
+        # Get the closest greater value and its successor (if it exists)
+        if higher_index is not None:
+            closest_values.append(self.distint_lines[higher_index])
+            if higher_index < len(self.distint_lines) - 1:
+                closest_values.append(self.distint_lines[higher_index + 1])  # Successor
+        
+        # Check if any of these values have a count greater than 1
+        for value in closest_values:
+            index = self.distint_lines.index(value)
+            if self.counts[index] > 1:
+                return True
+
+        return False
