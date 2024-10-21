@@ -4,39 +4,36 @@ import time
 import csv
 from dotenv import load_dotenv
 from pathlib import Path
-from .settings import COLUMNS
+from .blofin_apis import BlofinApis
 
 class LineBreak:
-    def __init__(self, lines, first, normal, conf, open_conf, close_conf, high_conf, low_conf, symbol, num_limit):
+    def __init__(self, lines, first, normal, conf, symbol, num_limit):
         self.num_lines = lines
         self.first_interval = first
         self.normal_interval = normal
-        self.conf = conf
-        self.open_conf = open_conf
-        self.close_conf = close_conf
-        self.high_conf = high_conf
-        self.low_conf = low_conf
-        self.symbol = symbol.replace("/", '')
+        self.conf = float(conf) / 100
+        self.symbol = symbol
         self.csv_file  = f"ohlcv_{self.symbol}_data.csv"
         self.candlestick_data = []
         self.linebreak_data = []
-        self.selling_track = []
         self.num_limit = num_limit
+        
+        self.env_path = Path('..') / '.env'
+        load_dotenv(self.env_path)
+        columns_str = os.getenv("COLUMNS")
+        self.columns = columns_str.split(",") if columns_str else []
     
     def conf_csv_file(self, df):
-        open_conf = float(self.open_conf) / 100
-        close_conf = float(self.close_conf) / 100
-        high_conf = float(self.high_conf) / 100
-        low_conf = float(self.low_conf) / 100
+        conf = self.conf
         height_o = df['open'] - df['close']
-        open_conf  = df['open'] - height_o * open_conf
-        close_conf =  df['close'] + height_o * close_conf
+        open_conf  = df['open'] - height_o * conf
+        close_conf =  df['close'] + height_o * conf
         df['open'] = round(open_conf, 2)
         df['close'] = round(close_conf, 2)
 
         height_h = df['high'] - df['low']
-        high_conf  = df['high'] + height_h * high_conf
-        low_conf = df['low'] - height_h * low_conf
+        high_conf  = df['high'] + height_h * conf
+        low_conf = df['low'] - height_h * conf
         df['high'] = round(high_conf, 2)
         df['low'] = round(low_conf, 2)
         print(f'--Candle Stick Data Configured--')
@@ -45,7 +42,7 @@ class LineBreak:
     def get_directory(self, path):
         current_dir = os.path.dirname(os.path.abspath(__file__))
         parent_dir = os.path.dirname(current_dir)
-        return os.path.join(parent_dir, "data", self.symbol, path)
+        return os.path.join(parent_dir, "data", path)
     
     def read_csv_file(self, path):
         input_data = self.get_directory(path)
@@ -116,7 +113,7 @@ class LineBreak:
             for index in range(self.first_interval, len(df), self.normal_interval):
                 self.calculate_candlestick(df, index, self.normal_interval)
         
-        candlestick_df = pd.DataFrame(self.candlestick_data, columns = COLUMNS)
+        candlestick_df = pd.DataFrame(self.candlestick_data, columns = self.colums)
         if self.conf : 
             conf_candle_df = self.conf_csv_file(candlestick_df)
             conf_candle_df.to_csv(f'source/data/{self.symbol}/conf_{self.first_interval}_{self.normal_interval}_candlestick_{self.csv_file}', mode='a', header=(exist == 0), index=False)
@@ -219,11 +216,9 @@ class LineBreak:
         for index in range(len(df)):
             self.calculate_linebreak(df, index)
         
-        linebreak_df = pd.DataFrame(self.linebreak_data, columns=COLUMNS)
+        linebreak_df = pd.DataFrame(self.linebreak_data, columns=self.colums)
         if exist: 
             print(f'--Some Lines are dropped: {linebreak_df.iloc[self.num_lines-1]}--')
             linebreak_df = linebreak_df.iloc[self.num_lines:]
         if self.conf : linebreak_df.to_csv(f'source/data/{self.symbol}/conf_{self.first_interval}_{self.normal_interval}_{self.num_lines}_linebreak_{self.csv_file}', mode='a', header=(exist == 0), index=False)
         else: linebreak_df.to_csv(f'source/data/{self.symbol}/{self.first_interval}_{self.normal_interval}_{self.num_lines}_linebreak_{self.csv_file}', mode='a', header=(exist == 0), index=False)
-        trading_track_df = pd.DataFrame(self.selling_track)
-        trading_track_df.to_csv(f'source/data/trading_track.csv')

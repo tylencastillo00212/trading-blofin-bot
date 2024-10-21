@@ -8,17 +8,22 @@ from dotenv import load_dotenv
 class BlofinApis:
     def __init__(self):
         self.coins = []
-        self.env_path = Path('..') / '.env'
-        self.data_path = Path('..') / 'data'
+        self.last_price = 0
+        base_path = Path(__file__).resolve().parent.parent
+        self.env_path = base_path / '.env'
+        self.data_path = base_path / 'data'
         load_dotenv(self.env_path)
         self.base_url = os.getenv('BLOFIN_API_URL')
+        rate_limit = os.getenv('BLOFIN_API_RATE_LIMIT')
+        self.rate_limit = int(rate_limit)
         
     def get_coins_list(self):
         url = self.base_url + 'instruments'
+        print(url)
         coins_list_path = self.data_path / 'coins.csv'
         try:
             response = requests.get(url)
-            if response.status_code != 200:
+            if response.status_code == 200:
                 coins = response.json().get("data", [])
                 with coins_list_path.open(mode='w', newline='', encoding='utf-8') as file:
                     writer = csv.writer(file)
@@ -30,6 +35,7 @@ class BlofinApis:
                 df = pd.read_csv(coins_list_path, header=None)
                 self.coins = df[0].values.tolist()
                 print(df)
+            return self.coins
                 
         except Exception as e:
             print("An error occurred:", e)
@@ -48,11 +54,15 @@ class BlofinApis:
         if not coin_name:
             raise ValueError("The 'coin_name' parameter is required.")
 
-        if coin_name not in self.coins:
-            raise ValueError(f"Invalid 'coin_name': {coin_name}. It must be one of the following: {', '.join(self.coins)}")
+        # if coin_name not in self.coins:
+        #     raise ValueError(f"Invalid 'coin_name': {coin_name}. It must be one of the following: {', '.join(self.coins)}")
 
         url = self.base_url + 'candles'
-    
+        
+        if after:
+            after += 60 * 1000 * self.rate_limit
+            limit = self.rate_limit
+            
         params = {
             'instId': coin_name,
             'bar': bar,
@@ -67,11 +77,13 @@ class BlofinApis:
         try:
             # Perform the GET request
             response = requests.get(url, params=params)
+            response_json = response.json()
         
             # Check if the request was successful
             if response.status_code == 200:
-                print(response.json())
-                return response.json()  # Return the JSON data
+                data = response_json['data']
+                correct_order_data = data[::-1]
+                return correct_order_data  # Return the JSON data
             else:
                 print(f"Failed to retrieve data. HTTP Status Code: {response.status_code}")
                 print(response.text)
@@ -80,6 +92,33 @@ class BlofinApis:
             print("An error occurred:", e)
             return None
 
-blofin = BlofinApis()
-blofin.get_coins_list()
-blofin.get_coins_data("BTC-USDT")
+    def get_tick_price(self, coin_name):
+        url = self.base_url + 'tickers'
+        try:
+            if not coin_name:
+                raise ValueError("The 'coin_name' parameter is required.")
+
+            if coin_name not in self.coins:
+                raise ValueError(f"Invalid 'coin_name': {coin_name}. It must be one of the following: {', '.join(self.coins)}")
+
+            url = self.base_url + 'tickers'
+        
+            params = { 'instId': coin_name }
+            
+            response = requests.get(url, params = params)
+            if response.status_code == 200:
+                tickers = response.json()
+                last_price = tickers['data'][0]['last']
+                self.last_price = last_price
+            else:
+                print('No price data returned')
+            return self.last_price
+                
+        except Exception as e:
+            print("An error occurred:", e)
+        
+# blofin = BlofinApis()
+# blofin.get_coins_list()
+# data = blofin.get_coins_data("BTC-USDT")
+# lastprice = blofin.get_tick_price("BTC-USDT")
+# print(f'Last Price: {data}')
