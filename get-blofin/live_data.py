@@ -18,7 +18,6 @@ class LiveData:
         self.timeformat = os.getenv('DATETIME_FORMAT')
         columns_str = os.getenv("COLUMNS")
         self.columns = columns_str.split(",") if columns_str else []
-        print(self.columns)
         self.timezone = os.getenv("TIMEZONE")
         self.timeframe = os.getenv("TIMEFRAME")
         self.num_limit = os.getenv("NUM_LIMIT")
@@ -30,7 +29,10 @@ class LiveData:
         self.data_path = base_path / 'data'
         self.symbol = symbol
         self.csv_file = self.data_path / 'candlestick' / f"{self.symbol}.csv"
-
+        self.current_timestamp = datetime.now().timestamp() * 1000
+        print(f'Current Timestamp: {self.current_timestamp}')
+        self.timerange = self.rate_limit * 60 * 1000
+        
     def create_csv_file(self):
         with open(self.csv_file, 'w', newline='') as file:
             writer = csv.writer(file)
@@ -44,10 +46,15 @@ class LiveData:
         while True:
             ohlcv = self.blofin_api.get_coins_data(self.symbol, bar=self.timeframe, after=start)
             if len(ohlcv) == 0:
+                start += self.timerange
                 break
-            self.fit_to_style(ohlcv)
-            # time.sleep(60 / self.rate_limit)
-            start = int(ohlcv[-1][0]) + 1
+            if start + self.timerange > self.current_timestamp:
+                print('--Reached the latest data--')
+                break
+            else:
+                self.fit_to_style(ohlcv)
+                # time.sleep(60 / self.rate_limit)
+                start = int(ohlcv[-1][0]) + 1
         # Avoid hitting rate limit
         print("Original Data Was Updated")
         return since

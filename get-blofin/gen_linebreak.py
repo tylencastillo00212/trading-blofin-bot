@@ -7,19 +7,22 @@ from pathlib import Path
 from .blofin_apis import BlofinApis
 
 class LineBreak:
-    def __init__(self, lines, first, normal, conf, symbol, num_limit):
+    def __init__(self, lines, interval, symbol):
         self.num_lines = lines
-        self.first_interval = first
-        self.normal_interval = normal
-        self.conf = float(conf) / 100
+        self.interval = interval
         self.symbol = symbol
-        self.csv_file  = f"ohlcv_{self.symbol}_data.csv"
         self.candlestick_data = []
         self.linebreak_data = []
-        self.num_limit = num_limit
         
-        self.env_path = Path('..') / '.env'
-        load_dotenv(self.env_path)
+        base_path = Path(__file__).resolve().parent.parent
+        env_path = base_path / '.env'
+        data_path = base_path / 'data'
+        self.source_path = data_path / 'candlestick' / f"{symbol}.csv"
+        self.custom_path = data_path / 'customstick' / f"{self.interval}m-{symbol}.csv"
+        self.export_path = data_path / 'linebreak' / f"{self.interval}m-{self.num_lines}linebreak-{symbol}.csv"
+        load_dotenv(env_path)
+        conf = os.getenv("LINEBREAK_CONF")
+        self.conf = float(conf) / 100
         columns_str = os.getenv("COLUMNS")
         self.columns = columns_str.split(",") if columns_str else []
     
@@ -38,15 +41,6 @@ class LineBreak:
         df['low'] = round(low_conf, 2)
         print(f'--Candle Stick Data Configured--')
         return df
-    
-    def get_directory(self, path):
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(current_dir)
-        return os.path.join(parent_dir, "data", path)
-    
-    def read_csv_file(self, path):
-        input_data = self.get_directory(path)
-        return pd.read_csv(input_data)
     
     def calculate_candlestick(self, df, first, interval):
         length       = len(df)
@@ -77,11 +71,11 @@ class LineBreak:
 
     def update_candle(self, path):
         exist_data = pd.read_csv(path)
-        base_data = self.read_csv_file(self.csv_file)
+        base_data = pd.read_csv(self.source_path)
         last_date = exist_data.iloc[-1]['date']
         last_num = 0
         print(f'--Existing Last Date of Candlestick is: {last_date}--')
-        with open(self.get_directory(self.csv_file), 'r') as file:
+        with open(self.source_path, 'r') as file:
             reader = csv.DictReader(file)
             for index, row in enumerate(reader):
                 if row['date'].startswith(last_date):
@@ -89,36 +83,25 @@ class LineBreak:
                     break
         print(f'--Last Data starts on this: {last_num} in Origin--')
         length = len(base_data)
-        for index in range(last_num + self.normal_interval, length, self.normal_interval):
-            self.calculate_candlestick(base_data, index, self.normal_interval)
+        for index in range(last_num + self.interval, length, self.interval):
+            self.calculate_candlestick(base_data, index, self.interval)
 
     def get_candlestick_with_interval(self):
-        conf_path = self.get_directory(f'conf_{self.first_interval}_{self.normal_interval}_candlestick_{self.csv_file}')
-        nor_path = self.get_directory(f'{self.first_interval}_{self.normal_interval}_candlestick_{self.csv_file}')
         exist = 0
-        if self.conf and os.path.exists(conf_path):
-            print("----Status: Current status is conf----------")
-            print("----Already the Candle Stick File exists, Updating now----------")
-            self.update_candle(conf_path)
-            exist = 1
-        elif not self.conf and os.path.exists(nor_path):
+        if self.custom_path.exists():
             print("----Status: Current status is normal----------")
             print("----Already the Candle Stick File exists, Updating now----------")
-            self.update_candle(nor_path)
+            self.update_candle(self.custom_path)
             exist = 1
         else:
             print("----Status: Starting Candlestick calculation----------")
-            df = self.read_csv_file(self.csv_file)
-            self.calculate_candlestick(df, 0, self.first_interval)
-            for index in range(self.first_interval, len(df), self.normal_interval):
-                self.calculate_candlestick(df, index, self.normal_interval)
+            df = pd.read_csv(self.source_path)
+            self.calculate_candlestick(df, 0, self.interval)
+            for index in range(self.interval, len(df), self.interval):
+                self.calculate_candlestick(df, index, self.interval)
         
-        candlestick_df = pd.DataFrame(self.candlestick_data, columns = self.colums)
-        if self.conf : 
-            conf_candle_df = self.conf_csv_file(candlestick_df)
-            conf_candle_df.to_csv(f'source/data/{self.symbol}/conf_{self.first_interval}_{self.normal_interval}_candlestick_{self.csv_file}', mode='a', header=(exist == 0), index=False)
-        else : 
-            candlestick_df.to_csv(f'source/data/{self.symbol}/{self.first_interval}_{self.normal_interval}_candlestick_{self.csv_file}', mode='a', header=(exist == 0), index=False)
+        candlestick_df = pd.DataFrame(self.candlestick_data, columns = self.columns)
+        candlestick_df.to_csv(self.custom_path, mode='a', header=(exist == 0), index=False)
         time.sleep(10)
 
     def calculate_linebreak(self, df, index):
@@ -160,20 +143,14 @@ class LineBreak:
                 'close' : close_value,
                 'volume': volume,
             })
-            if direction * former_direction == -1:
-                self.selling_track.append({
-                    "date"      : date,
-                    "price"     : open_value,
-                    "direction" : direction,
-                })
 
     def update_linebreak(self, path, base_path):
         exist_data = pd.read_csv(path)
-        base_data = self.read_csv_file(base_path)
+        base_data = pd.read_csv(base_path)
         last_date = exist_data.iloc[-1]['date']
         last_num = 0
         print(f'--Existing Last Date of Linebreak is: {last_date}--')
-        with open(self.get_directory(base_path), 'r') as file:
+        with open(self.custom_path, 'r') as file:
             reader = csv.DictReader(file)
             for index, row in enumerate(reader):
                 if row['date'].startswith(last_date):
@@ -188,37 +165,23 @@ class LineBreak:
 
     def get_linebreak_with_interval(self):
         print(f'----Calculating Linebreak Starts Newly----')
-        if self.conf : 
-            base_path = f'conf_{self.first_interval}_{self.normal_interval}_candlestick_{self.csv_file}'
-            df_base = self.read_csv_file(base_path)
-        else : 
-            base_path = f'{self.first_interval}_{self.normal_interval}_candlestick_{self.csv_file}'
-            df_base = self.read_csv_file(base_path)
         
-        conf_path = self.get_directory(f'conf_{self.first_interval}_{self.normal_interval}_{self.num_lines}_linebreak_{self.csv_file}')
-        nor_path = self.get_directory(f'{self.first_interval}_{self.normal_interval}_{self.num_lines}_linebreak_{self.csv_file}')
-
         exist = 0
-        if self.conf and os.path.exists(conf_path):
-            print("----Status: Current status is conf----------")
-            print("----Already the File exists, Updating now----------")
-            df = self.update_linebreak(conf_path, base_path)
-            exist = 1
-        elif not self.conf and os.path.exists(nor_path):
+        if self.export_path.exists():
             print("----Status: Current status is normal----------")
             print("----Already the File exists, Updating now----------")
-            df = self.update_linebreak(nor_path, base_path)
+            df = self.update_linebreak(self.export_path, self.custom_path)
             exist = 1
         else:
             print("----Start Newly----------")
-            df = df_base
+            df = pd.read_csv(self.custom_path)
             exist = 0
         for index in range(len(df)):
             self.calculate_linebreak(df, index)
         
-        linebreak_df = pd.DataFrame(self.linebreak_data, columns=self.colums)
+        linebreak_df = pd.DataFrame(self.linebreak_data, columns=self.columns)
         if exist: 
             print(f'--Some Lines are dropped: {linebreak_df.iloc[self.num_lines-1]}--')
             linebreak_df = linebreak_df.iloc[self.num_lines:]
-        if self.conf : linebreak_df.to_csv(f'source/data/{self.symbol}/conf_{self.first_interval}_{self.normal_interval}_{self.num_lines}_linebreak_{self.csv_file}', mode='a', header=(exist == 0), index=False)
-        else: linebreak_df.to_csv(f'source/data/{self.symbol}/{self.first_interval}_{self.normal_interval}_{self.num_lines}_linebreak_{self.csv_file}', mode='a', header=(exist == 0), index=False)
+        linebreak_df.to_csv(self.export_path, mode='a', header=(exist == 0), index=False)
+        print(f'--Successfully calculated the {self.interval}m {self.num_lines} linebreak data--')

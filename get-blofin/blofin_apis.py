@@ -16,6 +16,7 @@ class BlofinApis:
         self.base_url = os.getenv('BLOFIN_API_URL')
         rate_limit = os.getenv('BLOFIN_API_RATE_LIMIT')
         self.rate_limit = int(rate_limit)
+        self.time_range = 60 * 1000 * self.rate_limit
         
     def get_coins_list(self):
         url = self.base_url + 'instruments'
@@ -60,7 +61,7 @@ class BlofinApis:
         url = self.base_url + 'candles'
         
         if after:
-            after += 60 * 1000 * self.rate_limit
+            after += self.time_range
             limit = self.rate_limit
             
         params = {
