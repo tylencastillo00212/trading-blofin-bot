@@ -3,6 +3,7 @@ import pandas as pd
 import csv
 import pytz
 import time
+import ccxt
 from datetime import datetime
 from itertools import cycle
 from dotenv import load_dotenv
@@ -27,11 +28,10 @@ class LiveData:
         timestamp = datetime.strptime(start_time, self.timeformat)
         self.start = int(timestamp.timestamp() * 1000)
         self.data_path = base_path / 'data'
-        self.symbol = symbol
+        self.symbol = symbol.replace('/', '')
         self.csv_file = self.data_path / 'candlestick' / f"{self.symbol}.csv"
-        self.current_timestamp = datetime.now().timestamp() * 1000
-        print(f'Current Timestamp: {self.current_timestamp}')
         self.timerange = self.rate_limit * 60 * 1000
+        self.exchange = ccxt.binance({'enableRateLimit' : True})
         
     def create_csv_file(self):
         with open(self.csv_file, 'w', newline='') as file:
@@ -43,18 +43,15 @@ class LiveData:
     
     def fetch_new_data(self, since):
         start = since
+        print(start)
         while True:
-            ohlcv = self.blofin_api.get_coins_data(self.symbol, bar=self.timeframe, after=start)
+            ohlcv = self.exchange.fetch_ohlcv(self.symbol, self.timeframe, start, self.num_limit)
+            print(ohlcv)
             if len(ohlcv) == 0:
-                start += self.timerange
                 break
-            if start + self.timerange > self.current_timestamp:
-                print('--Reached the latest data--')
-                break
-            else:
-                self.fit_to_style(ohlcv)
-                # time.sleep(60 / self.rate_limit)
-                start = int(ohlcv[-1][0]) + 1
+            self.fit_to_style(ohlcv)
+            time.sleep(self.exchange.rateLimit / 1000)
+            start = ohlcv[-1][0] + 1
         # Avoid hitting rate limit
         print("Original Data Was Updated")
         return since
@@ -98,7 +95,7 @@ class LiveData:
         new_df.to_csv(self.csv_file, mode='a', header=False, index=False)
         
     def latest_data(self):
-        latest_data = self.blofin_api.get_coins_data(self.symbol, bar=self.timeframe, limit=1)
+        latest_data = self.exchange.fetch_ohlcv(self.symbol, self.timeframe, limit=1)
         if latest_data:
             latest_df = pd.DataFrame(latest_data, columns=self.columns)
             latest_df['date'] = pd.to_datetime(latest_df['date'], unit='ms')
@@ -127,7 +124,7 @@ class LiveData:
             last_timestamp_ms = self.read_last_date_from_csv()
             print(f'--Updating on this Timestamp: {last_timestamp_ms}--')
         try:
-            self.fetch_new_data(last_timestamp_ms+1)
+            self.fetch_new_data(last_timestamp_ms + 1)
             # if new_data:
                 # self.fit_to_style(new_data)
                 # time.sleep(30)

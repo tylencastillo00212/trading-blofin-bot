@@ -10,16 +10,16 @@ class LineBreak:
     def __init__(self, interval, lines, symbol):
         self.num_lines = int(lines)
         self.interval = int(interval)
-        self.symbol = symbol
+        self.symbol = symbol.replace('/', '')
         self.candlestick_data = []
         self.linebreak_data = []
         
         base_path = Path(__file__).resolve().parent.parent
         env_path = base_path / '.env'
         data_path = base_path / 'data'
-        self.source_path = data_path / 'candlestick' / f"{symbol}.csv"
-        self.custom_path = data_path / 'customstick' / f"{self.interval}m-{symbol}.csv"
-        self.export_path = data_path / 'linebreak' / f"{self.interval}m-{self.num_lines}linebreak-{symbol}.csv"
+        self.source_path = data_path / 'candlestick' / f"{self.symbol}.csv"
+        self.custom_path = data_path / 'customstick' / f"{self.interval}m-{self.symbol}.csv"
+        self.export_path = data_path / 'linebreak' / f"{self.interval}m-{self.num_lines}linebreak-{self.symbol}.csv"
         load_dotenv(env_path)
         conf = os.getenv("LINEBREAK_CONF")
         self.conf = float(conf) / 100

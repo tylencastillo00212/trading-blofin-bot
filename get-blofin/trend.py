@@ -1,26 +1,26 @@
 import os
 import csv
+import ccxt
 import pandas as pd
 from pathlib import Path
 from dotenv import load_dotenv
-from .blofin_apis import BlofinApis
 
 class GetTrend:
     def __init__(self, time_interval, linebreak_num, currency):
+        self.currency = currency.replace('/', '')
         base_path = Path(__file__).resolve().parent.parent
         env_path = base_path / '.env'
         load_dotenv(env_path)
-        data_path = base_path / 'data' / 'linebreak' / f'{time_interval}m-{linebreak_num}linebreak-{currency}.csv'
-        self.export_path = base_path / 'data' / 'horlines' / f'lines-{time_interval}m-{linebreak_num}linebreak-{currency}.csv'
-        
+        data_path = base_path / 'data' / 'linebreak' / f'{time_interval}m-{linebreak_num}linebreak-{self.currency}.csv'
+        self.export_path = base_path / 'data' / 'horlines' / f'lines-{time_interval}m-{linebreak_num}linebreak-{self.currency}.csv'
+        self.binance = ccxt.binance()
+
         df = pd.read_csv(data_path)
         self.df = df
         self.conf_val  =  os.getenv('LINEBREAK_CONF')
         self.lines = []
         self.distint_lines = []
         self.counts = []
-        self.currency = currency
-        self.blofin_api = BlofinApis()
 
     def conf(self):
         conf_val = float(self.conf_val) / 100
@@ -80,7 +80,8 @@ class GetTrend:
                 writer.writerow([value, number])
                 
     def get_trend(self):
-        price = self.blofin_api.get_tick_price(self.currency)
+        ticker = self.binance.fetch_ticker(self.currency)
+        price = ticker['last']
         lower_index = None
         higher_index = None
 

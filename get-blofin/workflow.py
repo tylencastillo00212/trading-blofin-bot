@@ -1,16 +1,18 @@
 import os
+import threading
 from .live_data import LiveData
 from .gen_linebreak import LineBreak
 from .trend import GetTrend
 from .blofin_apis import BlofinApis
 from pathlib import Path
 from dotenv import load_dotenv
-import threading
+import pandas as pd
 
 class WorkFlow:
     def __init__(self):
         base_path = Path(__file__).resolve().parent.parent
         env_path = base_path / '.env'
+        self.data_path = base_path / 'data'
         load_dotenv(env_path)
         self.lines  =  os.getenv('LINEBREAK_NUM')
         self.interval  =  os.getenv('TIME_INTERVAL')
@@ -37,7 +39,7 @@ class WorkFlow:
         print('----------------------------------------------------')
         return trend
     
-    def get_percent(self, coins):
+    def get_percent(self, *coins):
         for coin in coins:
             coin_trend = self.get_trend(coin)
             if coin_trend:
@@ -45,14 +47,16 @@ class WorkFlow:
     
     # Create and start 10 threads
     def multi_thread(self):
-        blofin_api = BlofinApis()
-        coins = blofin_api.get_coins_list()
+        coins_list_path = self.data_path / 'coins.csv'
+        df = pd.read_csv(coins_list_path, header=None)
+        coins = df[0].values.tolist()
         num_coins = len(coins)
         chunk_size = round(num_coins / self.num_threads)
         threads = []
         for i in range(self.num_threads):
             coin_subset = coins[i * chunk_size:(i + 1) * chunk_size]
-            thread = threading.Thread(target=self.get_percent, args=(coin_subset, i))
+            print(coin_subset)
+            thread = threading.Thread(target=self.get_percent, args=(coin_subset))
             threads.append(thread)
             thread.start()
 
@@ -63,7 +67,7 @@ class WorkFlow:
         percent = float(self.positive_trend / num_coins) * 100
         return percent
     
-# blofin_api = BlofinApis()
-# coins = blofin_api.get_coins_list()
 workflow = WorkFlow()
-percent = workflow.multi_thread()
+# percent = workflow.multi_thread()
+trend = workflow.get_trend("BTC/USDT")
+print(trend)
