@@ -4,7 +4,6 @@ import time
 import csv
 from dotenv import load_dotenv
 from pathlib import Path
-from .blofin_apis import BlofinApis
 
 class LineBreak:
     def __init__(self, interval, lines, symbol):

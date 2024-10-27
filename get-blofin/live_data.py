@@ -23,15 +23,14 @@ class LiveData:
         self.timeframe = os.getenv("TIMEFRAME")
         self.num_limit = os.getenv("NUM_LIMIT")
         rate_limit = os.getenv("BLOFIN_API_RATE_LIMIT")
-        self.rate_limit = float(rate_limit)
+        self.rate_limit = int(rate_limit)
         start_time = os.getenv("START_TIME")
-        timestamp = datetime.strptime(start_time, self.timeformat)
-        self.start = int(timestamp.timestamp() * 1000)
+        self.exchange = ccxt.binance({'enableRateLimit' : True})
+        self.start = self.exchange.parse8601(start_time)
         self.data_path = base_path / 'data'
         self.symbol = symbol.replace('/', '')
         self.csv_file = self.data_path / 'candlestick' / f"{self.symbol}.csv"
         self.timerange = self.rate_limit * 60 * 1000
-        self.exchange = ccxt.binance({'enableRateLimit' : True})
         
     def create_csv_file(self):
         with open(self.csv_file, 'w', newline='') as file:
@@ -43,12 +42,11 @@ class LiveData:
     
     def fetch_new_data(self, since):
         start = since
-        print(start)
         while True:
-            ohlcv = self.exchange.fetch_ohlcv(self.symbol, self.timeframe, start, self.num_limit)
-            print(ohlcv)
+            ohlcv = self.exchange.fetch_ohlcv(self.symbol, self.timeframe, start, 1000)
             if len(ohlcv) == 0:
                 break
+            print('passed the fetching data')
             self.fit_to_style(ohlcv)
             time.sleep(self.exchange.rateLimit / 1000)
             start = ohlcv[-1][0] + 1
@@ -88,8 +86,6 @@ class LiveData:
     def fit_to_style(self, data):
         print(f"--Timestamp: {data[-1][0]}--")
         new_df = pd.DataFrame(data, columns=self.columns)
-        if not pd.api.types.is_numeric_dtype(new_df['date']):
-            new_df['date'] = pd.to_numeric(new_df['date'], errors='coerce')
         new_df['date'] = pd.to_datetime(new_df['date'], unit='ms')
         new_df['date'] = new_df['date'].apply(self.convert_timestamp_to_realtime)
         new_df.to_csv(self.csv_file, mode='a', header=False, index=False)
@@ -107,7 +103,7 @@ class LiveData:
         df = pd.read_csv(self.csv_file)
         lasttime_str = df.iloc[-1]['date']
         print(lasttime_str)
-        if (latest_df['date'].apply(str) != str(lasttime_str)).any():
+        if(latest_df['date'] != lasttime_str).any():
             latest_df.to_csv(self.csv_file, mode='a', header=False, index=False)
             print(f"Added latest data for {latest_df['date'].iloc[0]}")
         # self.spinner.init()
