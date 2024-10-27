@@ -4,6 +4,7 @@ import ccxt
 import pandas as pd
 from pathlib import Path
 from dotenv import load_dotenv
+import math
 
 class GetTrend:
     def __init__(self, time_interval, linebreak_num, currency):
@@ -14,6 +15,10 @@ class GetTrend:
         data_path = base_path / 'data' / 'linebreak' / f'{time_interval}m-{linebreak_num}linebreak-{self.currency}.csv'
         self.export_path = base_path / 'data' / 'horlines' / f'lines-{time_interval}m-{linebreak_num}linebreak-{self.currency}.csv'
         self.binance = ccxt.binance()
+        last_high_value = df['high'].iloc[-1]
+        precision = -int(math.floor(math.log10(abs(last_high_value))) + 1)
+        self.round = precision + 5
+    
 
         df = pd.read_csv(data_path)
         self.df = df
@@ -27,14 +32,14 @@ class GetTrend:
         height_o = self.df['open'] - self.df['close']
         open_conf  = self.df['open'] - height_o * conf_val
         close_conf =  self.df['close'] + height_o * conf_val
-        self.df['open'] = round(open_conf, 0)
-        self.df['close'] = round(close_conf, 0)
+        self.df['open'] = round(open_conf, self.round)
+        self.df['close'] = round(close_conf, self.round)
 
         height_h = self.df['high'] - self.df['low']
         high_conf  = self.df['high'] + height_h * conf_val
         low_conf = self.df['low'] - height_h * conf_val
-        self.df['high'] = round(high_conf, 0)
-        self.df['low'] = round(low_conf, 0)
+        self.df['high'] = round(high_conf, self.round)
+        self.df['low'] = round(low_conf, self.round)
         return self.df
     
     def get(self):
