@@ -39,6 +39,10 @@ class BlofinBot:
         self.downline_index = 0
         self.horizon_lines = []
 
+        self.position = 0
+        self.direction = 'NONE'
+
+
     def get_trend(self, currency):
         print('----------------------------------------------------')
         print(f'---------Start Calculation of {currency}------------')
@@ -51,7 +55,7 @@ class BlofinBot:
         get_trend = GetTrend(self.interval, self.lines, currency)
         get_trend.export_data()
         self.horizon_lines = get_trend.horizon_lines
-        print(f'horizon_lines: {self.horizon_lines}')
+        # print(f'horizon_lines: {self.horizon_lines}')
         # trend = get_trend.get_trend()
         print('----------------------------------------------------')
         print(f'-----------End Calculation of {currency}------------')
@@ -65,10 +69,10 @@ class BlofinBot:
         for i, value in enumerate(self.horizon_lines):
             if value < lastprice:
                 self.downline_index = i
-                self.downline_val = value
+                self.downline_val = float(value)
             elif value > lastprice:
                 self.upline_index = i
-                self.upline_val = value
+                self.upline_val = float(value)
                 break
         print(f'downline_index: {self.downline_index}')
         print(f'downline_val: {self.downline_val}')
@@ -119,24 +123,59 @@ class BlofinBot:
                 break
         # Close the connection when done
         ws.close()
+
+    def order_trigger(self, price):
+        print(f'upline index: {self.upline_index}')
+        if price > self.upline_val:
+            self.upline_index += 1
+            self.downline_index += 1
+            print(f'--Trigger: the price touched upper line--')
+            self.upline_val = float(self.horizon_lines[self.upline_index])
+            self.downline_val = float(self.horizon_lines[self.downline_index])
+            print(f'Horizon Range: [{self.downline_val, self.upline_val}]')
+            return True
+        elif price < self.downline_val:
+            self.upline_index -= 1
+            self.downline_index -= 1
+            print(f'--Trigger: the price touched lower line--')
+            self.upline_val = float(self.horizon_lines[self.upline_index])
+            self.downline_val = float(self.horizon_lines[self.downline_index])
+            print(f'Horizon Range: [{self.downline_val, self.upline_val}]')
+            return True
+        else:
+            print(f'--No Trigger Occurred--')
+            print(f'Horizon Range: [{self.downline_val, self.upline_val}]')
+            return False
     
     def on_message(self, ws, message):
         data = json.loads(message)
         # print(f"web socket data: {data}")
         # current_price = float(data['p'])
         if 'data' in data:
-            self.live_price = data['data'][0]['price']
-        print(f"web socket data: {self.live_price}")
+            price = float(data['data'][0]['price'])
+            self.live_price = price
+            print(f"web socket data: {self.live_price}")
+            trigger = self.order_trigger(price)
+            if (trigger):
+                # delta = self.get_delta()
+                delta = 1
+                print(f'Delta value: {delta}')
 
-        # Check if the current price exceeds the threshold
-        # if current_price > PRICE_THRESHOLD:
-            # print("Alert: BTC price is above the threshold!")
+    def auto_trading(self, delta):
+        if self.position == 0: 
+            if delta > 0:
+                self.direction = 'LONG'
+                print(f'Buy Long')
+            else: 
+                self.direction = 'SHORT'
+                print(f'Sell Short')
+
 
     def execute(self):
         self.get_trend(self.binancecoin)
         self.get_updown()
+        self.websocket_config(self.maincoin)
         # self.get_delta()
-        # self.websocket_config(self.maincoin)
         
     
 blofin_bot = BlofinBot()

@@ -14,16 +14,16 @@ class BlofinApis:
         self.data_path = base_path / 'data'
         load_dotenv(self.env_path)
         self.base_url = os.getenv('BLOFIN_API_URL')
+        self.web_socket_url = os.getenv('BLOFIN_WEBSOKET_URL')
         rate_limit = os.getenv('BLOFIN_API_RATE_LIMIT')
         self.bid_size = os.getenv('BID_SIZE')
         self.rate_limit = int(rate_limit)
         self.time_range = 60 * 1000 * self.rate_limit
 
         self.live_price = 0
-        self.web_socket_url = os.getenv('BLOFIN_WEBSOKET_URL')
         
     def get_coins_list(self, type='apis'):
-        url = self.base_url + 'instruments'
+        url = self.base_url + 'market/instruments'
         print(url)
         coins_list_path = self.data_path / 'coins.csv'
         if type == 'volumn':
@@ -65,7 +65,7 @@ class BlofinApis:
         # if coin_name not in self.coins:
         #     raise ValueError(f"Invalid 'coin_name': {coin_name}. It must be one of the following: {', '.join(self.coins)}")
 
-        url = self.base_url + 'candles'
+        url = self.base_url + 'market/candles'
         
         if after:
             after += self.time_range
@@ -101,12 +101,12 @@ class BlofinApis:
             return None
 
     def get_tick_price(self, coin_name):
-        url = self.base_url + 'tickers'
+        url = self.base_url + 'market/tickers'
+        print(url)
         try:
             if not coin_name:
                 raise ValueError("The 'coin_name' parameter is required.")
 
-            url = self.base_url + 'tickers'
         
             params = { 'instId': coin_name, 'size': 20 }
             
@@ -123,7 +123,7 @@ class BlofinApis:
             print("An error occurred:", e)
 
     def get_delta(self, coin_name):
-        url = self.base_url + 'books'
+        url = self.base_url + 'market/books'
         try: 
             if not coin_name:
                 raise ValueError("The 'coin_name' parameter is required.")
