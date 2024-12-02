@@ -20,7 +20,7 @@ class BlofinApis:
         self.time_range = 60 * 1000 * self.rate_limit
 
         self.live_price = 0
-        self.web_socket_url = 'wss://openapi.blofin.com/ws/'
+        self.web_socket_url = os.getenv('BLOFIN_WEBSOKET_URL')
         
     def get_coins_list(self, type='apis'):
         url = self.base_url + 'instruments'
@@ -151,6 +151,8 @@ class BlofinApis:
                 print('No price data returned')
         except Exception as e:
             print("An error occurred:", e, f'for {coin_name}')
+
+    
 
 # Use cases        
 # blofin = BlofinApis()
