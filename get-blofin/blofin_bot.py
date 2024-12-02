@@ -24,6 +24,7 @@ class BlofinBot:
         num_threads = os.getenv('NUM_THREADS')
         self.timeformat = os.getenv('DATETIME_FORMAT')
         self.maincoin = os.getenv('MAIN_COIN')
+        self.horizon_num = os.getenv('HORIZON_NUM')
         self.binancecoin = self.maincoin.replace("-", "/")
         self.num_threads = int(num_threads)
         self.percent = 0
@@ -32,23 +33,47 @@ class BlofinBot:
         self.coins_list_path = self.data_path / 'coins.csv'
         self.blofin_apis = BlofinApis()
         self.live_price = 0
+        self.upline_val = 0
+        self.downline_val = 0
+        self.upline_index = 0
+        self.downline_index = 0
+        self.horizon_lines = []
 
     def get_trend(self, currency):
         print('----------------------------------------------------')
         print(f'---------Start Calculation of {currency}------------')
         print('----------------------------------------------------')
-        live_data = LiveData(currency)
-        live_data.update_csv_realtime()
-        linebreak = LineBreak(self.interval, self.lines, currency)
-        linebreak.get_candlestick_with_interval()
-        linebreak.get_linebreak_with_interval()
+        # live_data = LiveData(currency)
+        # live_data.update_csv_realtime()
+        # linebreak = LineBreak(self.interval, self.lines, currency)
+        # linebreak.get_candlestick_with_interval()
+        # linebreak.get_linebreak_with_interval()
         get_trend = GetTrend(self.interval, self.lines, currency)
         get_trend.export_data()
+        self.horizon_lines = get_trend.horizon_lines
+        print(f'horizon_lines: {self.horizon_lines}')
         # trend = get_trend.get_trend()
         print('----------------------------------------------------')
         print(f'-----------End Calculation of {currency}------------')
         print('----------------------------------------------------')
         return 
+    
+    def get_updown(self):
+        lastprice = self.blofin_apis.get_tick_price(self.maincoin)
+        if not len(self.horizon_lines):
+            return 0
+        for i, value in enumerate(self.horizon_lines):
+            if value < lastprice:
+                self.downline_index = i
+                self.downline_val = value
+            elif value > lastprice:
+                self.upline_index = i
+                self.upline_val = value
+                break
+        print(f'downline_index: {self.downline_index}')
+        print(f'downline_val: {self.downline_val}')
+        print(f'upline_index: {self.upline_index}')
+        print(f'upline_val: {self.upline_val}')
 
     def get_delta(self):
         coins = self.blofin_apis.get_coins_list(type='volumn')
@@ -109,8 +134,9 @@ class BlofinBot:
 
     def execute(self):
         self.get_trend(self.binancecoin)
-        self.get_delta()
-        self.websocket_config(self.maincoin)
+        self.get_updown()
+        # self.get_delta()
+        # self.websocket_config(self.maincoin)
         
     
 blofin_bot = BlofinBot()

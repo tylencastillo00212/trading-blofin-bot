@@ -22,7 +22,9 @@ class GetTrend:
         precision = -int(math.floor(math.log10(abs(last_high_value))) + 1)
         self.round = precision + 5
     
-
+        horizon_num = os.getenv('HORIZON_NUM')
+        self.horizon_num = int(horizon_num)
+        self.horizon_lines = []
         self.conf_val  =  os.getenv('LINEBREAK_CONF')
         self.lines = []
         self.distint_lines = []
@@ -85,7 +87,9 @@ class GetTrend:
             writer.writerow(['value', 'numbers'])
 
             for value, number in zip(self.distint_lines, self.counts):
-                writer.writerow([value, number])
+                if number >= self.horizon_num:
+                    writer.writerow([value, number])
+                    self.horizon_lines.append(value)
                 
     def get_trend(self):
         ticker = self.binance.fetch_ticker(self.currency)
@@ -121,5 +125,42 @@ class GetTrend:
             index = self.distint_lines.index(value)
             if self.counts[index] > highest:
                 highest = self.counts[index]
+ 
+        return highest
+    
+    def get_updown(self):
+        ticker = self.binance.fetch_ticker(self.currency)
+        price = ticker['last']
+        lower_index = None
+        higher_index = None
 
+        # Find closest indices
+        for i, value in enumerate(self.distint_lines):
+            if value < price:
+                lower_index = i
+            elif value > price and not higher_index:
+                higher_index = i
+                break  # Break as soon as we find the first greater value
+
+        closest_values = []
+    
+        # Get the closest smaller value and its predecessor (if it exists)
+        if lower_index is not None:
+            closest_values.append(self.distint_lines[lower_index])
+            if lower_index > 0:
+                closest_values.insert(0, self.distint_lines[lower_index - 1])  # Predecessor
+        
+        # Get the closest greater value and its successor (if it exists)
+        if higher_index is not None:
+            closest_values.append(self.distint_lines[higher_index])
+            if higher_index < len(self.distint_lines) - 1:
+                closest_values.append(self.distint_lines[higher_index + 1])  # Successor
+        
+        # Check if any of these values have a count greater than 1
+        highest = 0
+        for value in closest_values:
+            index = self.distint_lines.index(value)
+            if self.counts[index] > highest:
+                highest = self.counts[index]
+ 
         return highest
