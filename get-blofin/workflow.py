@@ -22,6 +22,7 @@ class WorkFlow:
         self.num_threads = int(num_threads)
         self.percent = 0
         self.positive_trend = 0.0
+        self.trend = []
         
     
     def get_trend(self, currency):
@@ -64,7 +65,7 @@ class WorkFlow:
         for i in range(self.num_threads):
             coin_subset = coins[i * chunk_size:(i + 1) * chunk_size]
             print(coin_subset)
-            thread = threading.Thread(target=self.get_test, args=(coin_subset))
+            thread = threading.Thread(target=self.get_percent, args=(coin_subset))
             threads.append(thread)
             thread.start()
 
@@ -89,5 +90,6 @@ class WorkFlow:
     
 workflow = WorkFlow()
 percent = workflow.multi_thread()
-# trend = workflow.get_trend("BTC/USDT")
 print(percent)
+# trend = workflow.get_trend("ETH/USDT")
+# print(trend)

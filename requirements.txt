@@ -1,4 +1,6 @@
+requests
 pathlib
-dotenv
+python-dotenv
 pandas
 ccxt
+websocket-client

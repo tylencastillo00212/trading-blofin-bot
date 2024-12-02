@@ -15,13 +15,20 @@ class BlofinApis:
         load_dotenv(self.env_path)
         self.base_url = os.getenv('BLOFIN_API_URL')
         rate_limit = os.getenv('BLOFIN_API_RATE_LIMIT')
+        self.bid_size = os.getenv('BID_SIZE')
         self.rate_limit = int(rate_limit)
         self.time_range = 60 * 1000 * self.rate_limit
+
+        self.live_price = 0
+        self.web_socket_url = os.getenv('BLOFIN_WEBSOKET_URL')
         
-    def get_coins_list(self):
+    def get_coins_list(self, type='apis'):
         url = self.base_url + 'instruments'
         print(url)
         coins_list_path = self.data_path / 'coins.csv'
+        if type == 'volumn':
+            coins_list_path = self.data_path / 'coins_volumn.csv'
+
         try:
             response = requests.get(url)
             if response.status_code == 200:
@@ -101,7 +108,7 @@ class BlofinApis:
 
             url = self.base_url + 'tickers'
         
-            params = { 'instId': coin_name }
+            params = { 'instId': coin_name, 'size': 20 }
             
             response = requests.get(url, params = params)
             if response.status_code == 200:
@@ -114,6 +121,38 @@ class BlofinApis:
                 
         except Exception as e:
             print("An error occurred:", e)
+
+    def get_delta(self, coin_name):
+        url = self.base_url + 'books'
+        try: 
+            if not coin_name:
+                raise ValueError("The 'coin_name' parameter is required.")
+            coin_name = coin_name.replace("/", "-")
+            params = { 'instId': coin_name, 'size': self.bid_size }
+            response = requests.get(url, params = params)
+            # print(f'response: ', response)
+            if response.status_code == 200:
+                volumn = response.json()
+                # print(f'volumn: ', volumn)
+                asks = volumn['data'][0]['asks']
+                bids = volumn['data'][0]['bids']
+                ask_volumn = 0
+                bid_volumn = 0
+                for ask in asks:
+                    ask_volumn += float(ask[1])
+                for bid in bids:
+                    bid_volumn += float(bid[1])
+                delta = ask_volumn - bid_volumn
+                result = 1 if delta > 0 else -1
+                # print("delta: ", delta)
+
+                return result
+            else:
+                print('No price data returned')
+        except Exception as e:
+            print("An error occurred:", e, f'for {coin_name}')
+
+    
 
 # Use cases        
 # blofin = BlofinApis()
