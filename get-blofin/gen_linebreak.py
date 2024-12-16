@@ -95,6 +95,11 @@ class LineBreak:
         else:
             print("----Status: Starting Candlestick calculation----------")
             df = pd.read_csv(self.source_path)
+            
+            self.custom_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.custom_path, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(self.columns)
             self.calculate_candlestick(df, 0, self.interval)
             for index in range(self.interval, len(df), self.interval):
                 self.calculate_candlestick(df, index, self.interval)
@@ -174,6 +179,10 @@ class LineBreak:
         else:
             print("----Start Newly----------")
             df = pd.read_csv(self.custom_path)
+            self.export_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.custom_path, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(self.columns)
             exist = 0
         for index in range(len(df)):
             self.calculate_linebreak(df, index)

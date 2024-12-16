@@ -12,6 +12,10 @@ import time
 import json
 import websockets
 import asyncio
+import sys
+
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 class BlofinBot:
     def __init__(self):
@@ -91,14 +95,15 @@ class BlofinBot:
         coins = await self.blofin_apis.get_coins_list(type='volumn')
         # print(f'coins: {coins}')
         result = 0
-        tasks = [self.blofin_apis.get_delta(coin) for coin in coins]
-        deltas = await asyncio.gather(*tasks, return_exceptions=True)
-        for delta in deltas:
-            if isinstance(delta, Exception):
-                print(f"Error fetching delta for a coin: {delta}")
-            else:
+        for coin in coins:
+            try:
+                # Fetch delta for each coin sequentially
+                delta = await self.blofin_apis.get_delta(coin)
                 result += delta
-        print(f'result for getting delta: {result}')
+            except Exception as e:
+                print(f"Error fetching delta for {coin}: {e}")
+        
+        print(f'Result for getting delta: {result}')
         return result
     
     async def websocket_config(self, coin):
@@ -136,7 +141,7 @@ class BlofinBot:
             self.upline_index += 1
             self.downline_index += 1
             print(f'--Trigger: the price touched upper line--')
-            if self.upline_index > length:
+            if self.upline_index >= length:
                 self.upline_val = float('inf')
             else:
                 self.upline_val = float(self.horizon_lines[self.upline_index])
