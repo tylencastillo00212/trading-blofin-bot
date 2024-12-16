@@ -1,3 +1,10 @@
+import asyncio
+import sys
+
+# Set the event loop policy to SelectorEventLoop on Windows
+if sys.platform == "win32":
+    asyncio.events.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 import os
 import threading
 from .live_data import LiveData
@@ -11,6 +18,7 @@ from .blofin_apis import BlofinApis
 import time
 import json
 from websocket import create_connection
+import asyncio
 
 class BlofinBot:
     def __init__(self):
@@ -79,14 +87,12 @@ class BlofinBot:
         print(f'upline_index: {self.upline_index}')
         print(f'upline_val: {self.upline_val}')
 
-    def get_delta(self):
-        coins = self.blofin_apis.get_coins_list(type='volumn')
-        # print(f'coins: {coins}')
+    async def get_delta(self):
+        coins = await self.blofin_apis.get_coins_list(type='volumn')
+        print(f'coins: {coins}')
         result = 0
-        for coin in coins:
-            value = self.blofin_apis.get_delta(coin)
-            print(f'Delta for {coin}: ', value)
-            result += value
+        tasks = [self.blofin_apis.get_delta(coin) for coin in coins]
+        result = await asyncio.gather(*tasks)
         print(f'result: {result}')
         return result
     
@@ -115,7 +121,7 @@ class BlofinBot:
         while True:
             try:
                 # Receive and print a response (for validation or logging)
-                message = await ws.recv()
+                message = await asyncio.to_thread(ws.recv())
                 # print(f'message: {message}')
                 await self.on_message(ws, message)
             except Exception as e:
@@ -157,7 +163,7 @@ class BlofinBot:
             print(f"web socket data: {self.live_price}")
             trigger = self.order_trigger(price)
             if (trigger):
-                # delta = self.get_delta()
+                delta = self.get_delta()
                 delta = 1
                 print(f'Delta value: {delta}')
 
@@ -171,27 +177,29 @@ class BlofinBot:
                 print(f'Sell Short')
 
 
-    def execute(self):
+    async def execute(self):
         # self.get_trend(self.binancecoin)
-        self.get_updown()
-        # self.get_delta()
-        position_data = json.dumps({
-            "instId":"AIDOGE-USDT",
-            "marginMode":"cross",
-            "positionSide":"net",
-            "side":"sell",
-            "price":"0.0000000003885",
-            "size":"2",
-            "orderType": "limit"
-        })
-        self.blofin_apis.place_order(position_data)
+        # self.get_updown()
+        # await self.get_delta()
+        # position_data = json.dumps({
+        #     "instId":"AIDOGE-USDT",
+        #     "marginMode":"cross",
+        #     "positionSide":"net",
+        #     "side":"sell",
+        #     "price":"0.0000000003885",
+        #     "size":"2",
+        #     "orderType": "limit"
+        # })
+        # self.blofin_apis.place_order(position_data)
         # self.blofin_apis.get_position()
-        # self.websocket_config(self.maincoin)
+        websocket_task = asyncio.create_task(self.websocket_config(self.maincoin))
+        delta_task = asyncio.create_task(self.get_delta())
+        await asyncio.gather(websocket_task, delta_task)
         # self.get_delta()
         
     
 blofin_bot = BlofinBot()
-blofin_bot.execute()
+asyncio.run(blofin_bot.execute())
 # print(percent)
 
     

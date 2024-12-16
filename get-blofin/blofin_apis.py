@@ -1,4 +1,6 @@
 import os
+import asyncio
+import aiohttp
 import requests
 import csv
 import pandas as pd
@@ -55,7 +57,7 @@ class BlofinApis:
         return headers
 
         
-    def get_coins_list(self, type='apis'):
+    async def get_coins_list(self, type='apis'):
         request_path = '/api/v1/market/instruments'
         url = self.base_url + request_path
         print(url)
@@ -63,24 +65,27 @@ class BlofinApis:
         if type == 'volumn':
             coins_list_path = self.data_path / 'coins_volumn.csv'
 
-        try:
-            response = requests.get(url)
-            if response.status_code == 200:
-                coins = response.json().get("data", [])
-                with coins_list_path.open(mode='w', newline='', encoding='utf-8') as file:
-                    writer = csv.writer(file)
-                    for coin in coins:
-                        coin_name = coin.get("instId")
-                        self.coins.append(coin_name)
-                        writer.writerow([coin_name])
-            else:
-                df = pd.read_csv(coins_list_path, header=None)
-                self.coins = df[0].values.tolist()
-                print(df)
-            return self.coins
-                
-        except Exception as e:
-            print("An error occurred:", e)
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(url) as response:
+
+                    if response.status == 200:
+                        data = await response.json()
+                        coins = data.get("data", [])
+                        with coins_list_path.open(mode='w', newline='', encoding='utf-8') as file:
+                            writer = csv.writer(file)
+                            for coin in coins:
+                                coin_name = coin.get("instId")
+                                self.coins.append(coin_name)
+                                writer.writerow([coin_name])
+                    else:
+                        df = pd.read_csv(coins_list_path, header=None)
+                        self.coins = df[0].values.tolist()
+                        print(df)
+                return self.coins
+                    
+            except Exception as e:
+                print("An error occurred:", e)
     
     def get_coins_data(self, coin_name, bar=None, after=None, before=None, limit=None):
 
@@ -149,35 +154,36 @@ class BlofinApis:
         except Exception as e:
             print("An error occurred:", e)
 
-    def get_delta(self, coin_name):
+    async def get_delta(self, coin_name):
         request_path = '/api/v1/market/books'
         url = self.base_url + request_path
+        if not coin_name:
+            raise ValueError("The 'coin_name' parameter is required.")
+        coin_name = coin_name.replace("/", "-")
+        bid_size = int(self.bid_size)
+        params = { 'instId': coin_name, 'size': bid_size }
         try: 
-            if not coin_name:
-                raise ValueError("The 'coin_name' parameter is required.")
-            coin_name = coin_name.replace("/", "-")
-            bid_size = int(self.bid_size)
-            params = { 'instId': coin_name, 'size': bid_size }
-            response = requests.get(url, params = params)
-            # print(f'Response for {coin_name}: ', response)
-            if response.status_code == 200:
-                volumn = response.json()
-                # print(f'volumn for {coin_name}: ', volumn)
-                asks = volumn['data'][0]['asks']
-                bids = volumn['data'][0]['bids']
-                ask_volumn = 0
-                bid_volumn = 0
-                for ask in asks:
-                    ask_volumn += float(ask[1])
-                for bid in bids:
-                    bid_volumn += float(bid[1])
-                delta = ask_volumn - bid_volumn
-                result = 1 if delta > 0 else -1
-                # print("delta: ", delta)
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params) as response:
+                    # print(f'Response for {coin_name}: ', response)
+                    if response.status_code == 200:
+                        volumn = response.json()
+                        # print(f'volumn for {coin_name}: ', volumn)
+                        asks = volumn['data'][0]['asks']
+                        bids = volumn['data'][0]['bids']
+                        ask_volumn = 0
+                        bid_volumn = 0
+                        for ask in asks:
+                            ask_volumn += float(ask[1])
+                        for bid in bids:
+                            bid_volumn += float(bid[1])
+                        delta = ask_volumn - bid_volumn
+                        result = 1 if delta > 0 else -1
+                        # print("delta: ", delta)
 
-                return result
-            else:
-                print('No price data returned')
+                        return result
+                    else:
+                        print('No price data returned')
         except Exception as e:
             print("An error occurred:", e, f'for {coin_name}')
 
