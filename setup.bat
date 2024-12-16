@@ -1,4 +1,5 @@
-python -m venv myenv
-.\myenv\Scripts\activate
+python -m venv venv
+call .\venv\Scripts\activate
 pip install -r requirements.txt
+deactivate
 pause
