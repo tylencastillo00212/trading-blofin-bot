@@ -5,3 +5,4 @@ pandas
 ccxt
 websocket-client
 asyncio
+websockets

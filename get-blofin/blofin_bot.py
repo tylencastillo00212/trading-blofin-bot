@@ -10,7 +10,8 @@ from datetime import datetime
 from .blofin_apis import BlofinApis
 import time
 import json
-from websocket import create_connection
+import websockets
+import asyncio
 
 class BlofinBot:
     def __init__(self):
@@ -64,6 +65,7 @@ class BlofinBot:
     
     def get_updown(self):
         lastprice = self.blofin_apis.get_tick_price(self.maincoin)
+        length = len(self.horizon_lines) 
         if not len(self.horizon_lines):
             return 0
         for i, value in enumerate(self.horizon_lines):
@@ -74,25 +76,33 @@ class BlofinBot:
                 self.upline_index = i
                 self.upline_val = float(value)
                 break
+        if self.downline_index == 0:
+            self.downline_index = -1
+            self.downline_val = 0
+        elif self.upline_index == 0:
+            self.upline_index = length
+            self.upline_val = float('inf')
         print(f'downline_index: {self.downline_index}')
         print(f'downline_val: {self.downline_val}')
         print(f'upline_index: {self.upline_index}')
         print(f'upline_val: {self.upline_val}')
 
-    def get_delta(self):
-        coins = self.blofin_apis.get_coins_list(type='volumn')
+    async def get_delta(self):
+        coins = await self.blofin_apis.get_coins_list(type='volumn')
         # print(f'coins: {coins}')
         result = 0
-        for coin in coins:
-            value = self.blofin_apis.get_delta(coin)
-            print(f'Delta for {coin}: ', value)
-            result += value
-        print(f'result: {result}')
+        tasks = [self.blofin_apis.get_delta(coin) for coin in coins]
+        deltas = await asyncio.gather(*tasks, return_exceptions=True)
+        for delta in deltas:
+            if isinstance(delta, Exception):
+                print(f"Error fetching delta for a coin: {delta}")
+            else:
+                result += delta
+        print(f'result for getting delta: {result}')
         return result
     
     async def websocket_config(self, coin):
         url = self.blofin_apis.web_socket_url + 'public'
-        ws = create_connection(url)
         params = {
             "op": "subscribe",
             "args": [
@@ -104,33 +114,32 @@ class BlofinBot:
         }
         print(f"Connected to Blofin WebSocket for {coin}")
 
-        # print({url, ws, params})
+        async with websockets.connect(url) as ws:
+            await ws.send(json.dumps(params))
 
-        # Convert the parameters dictionary to a JSON string
-        params_json = json.dumps(params)
-
-        # Send the parameters through the WebSocket connection
-        ws.send(params_json)
-
-        while True:
-            try:
-                # Receive and print a response (for validation or logging)
-                message = await ws.recv()
-                # print(f'message: {message}')
-                await self.on_message(ws, message)
-            except Exception as e:
-                print(f"Error: {e}")
-                break
-        # Close the connection when done
-        ws.close()
+            while True:
+                try:
+                    # Receive and print a response (for validation or logging)
+                    message = await ws.recv()
+                    # print(f'message: {message}')
+                    await self.on_message(ws, message)
+                except Exception as e:
+                    print(f"Error: {e}")
+                    break
+            # Close the connection when done
 
     def order_trigger(self, price):
         print(f'upline index: {self.upline_index}')
+        length = len(self.horizon_lines)
+        print(length)
         if price > self.upline_val:
             self.upline_index += 1
             self.downline_index += 1
             print(f'--Trigger: the price touched upper line--')
-            self.upline_val = float(self.horizon_lines[self.upline_index])
+            if self.upline_index > length:
+                self.upline_val = float('inf')
+            else:
+                self.upline_val = float(self.horizon_lines[self.upline_index])
             self.downline_val = float(self.horizon_lines[self.downline_index])
             print(f'Horizon Range: [{self.downline_val, self.upline_val}]')
             return True
@@ -139,7 +148,10 @@ class BlofinBot:
             self.downline_index -= 1
             print(f'--Trigger: the price touched lower line--')
             self.upline_val = float(self.horizon_lines[self.upline_index])
-            self.downline_val = float(self.horizon_lines[self.downline_index])
+            if self.downline_index == 0:
+                self.downline_val = 0
+            else: 
+                self.downline_val = float(self.horizon_lines[self.downline_index])
             print(f'Horizon Range: [{self.downline_val, self.upline_val}]')
             return True
         else:
@@ -158,8 +170,17 @@ class BlofinBot:
             trigger = self.order_trigger(price)
             if (trigger):
                 # delta = self.get_delta()
+                asyncio.create_task(self.fetch_and_process_delta())
                 delta = 1
                 print(f'Delta value: {delta}')
+    
+    async def fetch_and_process_delta(self):
+        try:
+            delta = await self.get_delta()
+            print(f"Delta value: {delta}")
+        except Exception as e:
+            print(f"Error fetching delta: {e}")
+
 
     def auto_trading(self, delta):
         if self.position == 0: 
@@ -172,21 +193,21 @@ class BlofinBot:
 
 
     def execute(self):
-        # self.get_trend(self.binancecoin)
+        self.get_trend(self.binancecoin)
         self.get_updown()
         # self.get_delta()
-        position_data = json.dumps({
-            "instId":"AIDOGE-USDT",
-            "marginMode":"cross",
-            "positionSide":"net",
-            "side":"sell",
-            "price":"0.0000000003885",
-            "size":"2",
-            "orderType": "limit"
-        })
-        self.blofin_apis.place_order(position_data)
+        # position_data = json.dumps({
+        #     "instId":"AIDOGE-USDT",
+        #     "marginMode":"cross",
+        #     "positionSide":"net",
+        #     "side":"sell",
+        #     "price":"0.0000000003885",
+        #     "size":"2",
+        #     "orderType": "limit"
+        # })
+        # self.blofin_apis.place_order(position_data)
         # self.blofin_apis.get_position()
-        # self.websocket_config(self.maincoin)
+        asyncio.run(self.websocket_config(self.maincoin))
         # self.get_delta()
         
     
