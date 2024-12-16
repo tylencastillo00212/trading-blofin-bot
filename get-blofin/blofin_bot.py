@@ -132,11 +132,15 @@ class BlofinBot:
 
     def order_trigger(self, price):
         print(f'upline index: {self.upline_index}')
+        length = len(self.horizon_lines)
         if price > self.upline_val:
             self.upline_index += 1
             self.downline_index += 1
             print(f'--Trigger: the price touched upper line--')
-            self.upline_val = float(self.horizon_lines[self.upline_index])
+            if self.upline_index > length:
+                self.upline_val = float('inf')
+            else:
+                self.upline_val = float(self.horizon_lines[self.upline_index])
             self.downline_val = float(self.horizon_lines[self.downline_index])
             print(f'Horizon Range: [{self.downline_val, self.upline_val}]')
             return True
@@ -145,7 +149,10 @@ class BlofinBot:
             self.downline_index -= 1
             print(f'--Trigger: the price touched lower line--')
             self.upline_val = float(self.horizon_lines[self.upline_index])
-            self.downline_val = float(self.horizon_lines[self.downline_index])
+            if self.downline_index == 0:
+                self.downline_val = 0
+            else: 
+                self.downline_val = float(self.horizon_lines[self.downline_index])
             print(f'Horizon Range: [{self.downline_val, self.upline_val}]')
             return True
         else:
