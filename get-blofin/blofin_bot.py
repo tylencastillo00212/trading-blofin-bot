@@ -118,19 +118,24 @@ class BlofinBot:
             ]
         }
         print(f"Connected to Blofin WebSocket for {coin}")
+        
+        while True:
+            try:
+                async with websockets.connect(url) as ws:
+                    await ws.send(json.dumps(params))
 
-        async with websockets.connect(url) as ws:
-            await ws.send(json.dumps(params))
-
-            while True:
-                try:
-                    # Receive and print a response (for validation or logging)
-                    message = await ws.recv()
-                    # print(f'message: {message}')
-                    await self.on_message(ws, message)
-                except Exception as e:
-                    print(f"Error: {e}")
-                    break
+                    while True:
+                        try:
+                            # Receive and print a response (for validation or logging)
+                            message = await ws.recv()
+                            # print(f'message: {message}')
+                            await self.on_message(ws, message)
+                        except Exception as e:
+                            print(f"Error: {e}")
+                            break
+            except Exception as e:
+                print(f"WebSocket connection error: {e}. Retrying in 5 seconds...")
+                await asyncio.sleep(5)  # Wait before retrying
             # Close the connection when done
 
     def order_trigger(self, price):
