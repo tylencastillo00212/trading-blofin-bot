@@ -50,7 +50,7 @@ class WorkFlow:
     
     def get_test(self, *coins):
         for coin in coins:
-            # coin_trend = self.get_trend(coin)
+            coin_trend = self.get_trend(coin)
             # if coin_trend:
             self.positive_trend += 1
     
