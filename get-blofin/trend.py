@@ -80,6 +80,8 @@ class GetTrend:
         self.get()
         self.distint()
         self.count_distint()
+        if not self.export_path.exists():
+            self.export_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(self.export_path, 'w', newline='') as file:
             writer = csv.writer(file)
