@@ -47,11 +47,11 @@ class BlofinBot:
         print('----------------------------------------------------')
         print(f'---------Start Calculation of {currency}------------')
         print('----------------------------------------------------')
-        # live_data = LiveData(currency)
-        # live_data.update_csv_realtime()
-        # linebreak = LineBreak(self.interval, self.lines, currency)
-        # linebreak.get_candlestick_with_interval()
-        # linebreak.get_linebreak_with_interval()
+        live_data = LiveData(currency)
+        live_data.update_csv_realtime()
+        linebreak = LineBreak(self.interval, self.lines, currency)
+        linebreak.get_candlestick_with_interval()
+        linebreak.get_linebreak_with_interval()
         get_trend = GetTrend(self.interval, self.lines, currency)
         get_trend.export_data()
         self.horizon_lines = get_trend.horizon_lines
@@ -85,12 +85,12 @@ class BlofinBot:
         result = 0
         for coin in coins:
             value = self.blofin_apis.get_delta(coin)
+            print(f'Delta for {coin}: ', value)
             result += value
-            print(f'delta for {coin}: ', value)
         print(f'result: {result}')
         return result
     
-    def websocket_config(self, coin):
+    async def websocket_config(self, coin):
         url = self.blofin_apis.web_socket_url + 'public'
         ws = create_connection(url)
         params = {
@@ -115,9 +115,9 @@ class BlofinBot:
         while True:
             try:
                 # Receive and print a response (for validation or logging)
-                message = ws.recv()
+                message = await ws.recv()
                 # print(f'message: {message}')
-                self.on_message(ws, message)
+                await self.on_message(ws, message)
             except Exception as e:
                 print(f"Error: {e}")
                 break
@@ -147,7 +147,7 @@ class BlofinBot:
             print(f'Horizon Range: [{self.downline_val, self.upline_val}]')
             return False
     
-    def on_message(self, ws, message):
+    async def on_message(self, ws, message):
         data = json.loads(message)
         # print(f"web socket data: {data}")
         # current_price = float(data['p'])
@@ -172,9 +172,21 @@ class BlofinBot:
 
 
     def execute(self):
-        self.get_trend(self.binancecoin)
+        # self.get_trend(self.binancecoin)
         self.get_updown()
-        self.websocket_config(self.maincoin)
+        # self.get_delta()
+        position_data = json.dumps({
+            "instId":"AIDOGE-USDT",
+            "marginMode":"cross",
+            "positionSide":"net",
+            "side":"sell",
+            "price":"0.0000000003885",
+            "size":"2",
+            "orderType": "limit"
+        })
+        self.blofin_apis.place_order(position_data)
+        # self.blofin_apis.get_position()
+        # self.websocket_config(self.maincoin)
         # self.get_delta()
         
     
