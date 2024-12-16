@@ -165,8 +165,8 @@ class BlofinBot:
             print(f'Horizon Range: [{self.downline_val, self.upline_val}]')
             return True
         else:
-            print(f'--No Trigger Occurred--')
-            print(f'Horizon Range: [{self.downline_val, self.upline_val}]')
+            # print(f'--No Trigger Occurred--')
+            # print(f'Horizon Range: [{self.downline_val, self.upline_val}]')
             return False
     
     async def on_message(self, ws, message):
