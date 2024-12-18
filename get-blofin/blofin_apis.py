@@ -69,7 +69,7 @@ class BlofinApis:
                 async with session.get(url) as response:
                     if response.status == 200:
                         coins = (await response.json()).get("data", [])
-                        print(f'---Successful response for getting coins list: {coins}---')
+                        print(f'---Successfully get the coins list---')
                         with coins_list_path.open(mode='w', newline='', encoding='utf-8') as file:
                             writer = csv.writer(file)
                             for coin in coins:

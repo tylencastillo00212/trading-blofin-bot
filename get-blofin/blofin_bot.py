@@ -46,6 +46,7 @@ class BlofinBot:
 
         self.position = 0
         self.direction = 'NONE'
+        self.trigger = 0
 
 
     def get_trend(self, currency):
@@ -180,15 +181,17 @@ class BlofinBot:
             trigger = self.order_trigger(price)
             if (trigger):
                 # delta = self.get_delta()
-                asyncio.create_task(self.fetch_and_process_delta())
-                delta = 1
-                print(f'Delta value: {delta}')
+                if not self.trigger:
+                    asyncio.create_task(self.fetch_and_process_delta())
     
     async def fetch_and_process_delta(self):
         try:
+            self.trigger  = 1
             delta = await self.get_delta()
+            self.trigger = 0
             print(f"Delta value: {delta}")
         except Exception as e:
+            self.trigger = 0
             print(f"Error fetching delta: {e}")
 
 
