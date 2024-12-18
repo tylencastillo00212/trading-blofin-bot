@@ -69,6 +69,7 @@ class BlofinApis:
                 async with session.get(url) as response:
                     if response.status == 200:
                         coins = (await response.json()).get("data", [])
+                        print(f'---Successful response for getting coins list: {coins}---')
                         with coins_list_path.open(mode='w', newline='', encoding='utf-8') as file:
                             writer = csv.writer(file)
                             for coin in coins:
@@ -175,7 +176,7 @@ class BlofinApis:
                             bid_volumn += float(bid[1])
                         delta = ask_volumn - bid_volumn
                         result = 1 if delta > 0 else -1
-                        # print("delta: ", delta)
+                        print(f"-----delta for {coin_name}: {delta}-----")
                         return result
                     else:
                         print('No price data returned')
