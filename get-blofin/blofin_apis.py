@@ -185,7 +185,7 @@ class BlofinApis:
 
     def place_order(self, data):
         request_path = '/api/v1/trade/order'
-        url = self.base_url + request_path
+        url = self.demo_base_url + request_path
         print(url)
         method = 'POST'
         body = data

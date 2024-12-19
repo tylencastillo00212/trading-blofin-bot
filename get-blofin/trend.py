@@ -20,7 +20,7 @@ class GetTrend:
         self.df = df
         last_high_value = df['high'].iloc[-1]
         precision = -int(math.floor(math.log10(abs(last_high_value))) + 1)
-        self.round = precision + 5
+        self.round = precision + 7
     
         horizon_num = os.getenv('HORIZON_NUM')
         self.horizon_num = int(horizon_num)
