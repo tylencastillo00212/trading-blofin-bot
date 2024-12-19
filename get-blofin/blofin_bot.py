@@ -206,21 +206,21 @@ class BlofinBot:
 
 
     def execute(self):
-        # self.get_trend(self.binancecoin)
-        # self.get_updown()
-        self.get_delta()
-        position_data = json.dumps({
-            "instId":"BTC-USDT",
-            "marginMode":"cross",
-            "positionSide":"net",
-            "side":"sell",
-            "price":"0.0000000003885",
-            "size":"2",
-            "orderType": "limit"
-        })
-        self.blofin_apis.place_order(position_data)
-        self.blofin_apis.get_position()
-        # asyncio.run(self.websocket_config(self.maincoin))
+        self.get_trend(self.binancecoin)
+        self.get_updown()
+        # self.get_delta()
+        # position_data = json.dumps({
+        #     "instId":"BTC-USDT",
+        #     "marginMode":"cross",
+        #     "positionSide":"net",
+        #     "side":"sell",
+        #     "price":"0.0000000003885",
+        #     "size":"2",
+        #     "orderType": "limit"
+        # })
+        # self.blofin_apis.place_order(position_data)
+        # self.blofin_apis.get_position()
+        asyncio.run(self.websocket_config(self.maincoin))
         # self.get_delta()
         
     
