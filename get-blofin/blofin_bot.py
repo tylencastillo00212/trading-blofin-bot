@@ -186,10 +186,12 @@ class BlofinBot:
     
     async def fetch_and_process_delta(self):
         try:
-            self.trigger  = 1
+            self.trigger = 1
             delta = await self.get_delta()
             self.trigger = 0
+            print(f'--------------------')
             print(f"Delta value: {delta}")
+            print(f'--------------------')
         except Exception as e:
             self.trigger = 0
             print(f"Error fetching delta: {e}")

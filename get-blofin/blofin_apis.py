@@ -176,7 +176,7 @@ class BlofinApis:
                             bid_volumn += float(bid[1])
                         delta = ask_volumn - bid_volumn
                         result = 1 if delta > 0 else -1
-                        print(f"-----delta for {coin_name}: {delta}-----")
+                        print(f"-----delta for {coin_name}: {result}-----")
                         return result
                     else:
                         print('No price data returned')
