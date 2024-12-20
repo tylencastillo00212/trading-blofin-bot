@@ -197,40 +197,55 @@ class BlofinBot:
             self.trigger = 0
             print(f"Error fetching delta: {e}")
 
-
     async def auto_trading(self, delta):
-        if self.position == 0: 
-            if delta > 0:
-                self.direction = 'LONG'
-                self.position = 1
-                price = await self.blofin_apis.get_delta(self.maincoin, self.position)
-                print(f'Buy Long')
-                position_data = json.dumps({
-                    "instId": self.maincoin,
-                    "marginMode":"isolated",
-                    "positionSide":"long",
-                    "side":"buy",
-                    "price":price,
-                    "size":"2",
-                    "orderType": "limit"
-                })
-            else: 
-                self.direction = 'SHORT'
-                self.position = -1
-                price = await self.blofin_apis.get_delta(self.maincoin, self.position)
-                print(f'Sell Short')
-                position_data = json.dumps({
-                    "instId": self.maincoin,
-                    "marginMode":"isolated",
-                    "positionSide":"short",
-                    "side":"sell",
-                    "price":price,
-                    "size":"2",
-                    "orderType": "limit"
-                })
-            await self.blofin_apis.place_order(position_data)
+        # Determine action based on current position
+        if self.position == 0:
+            await self.open_position(delta)
+        elif (self.position > 0 and delta <= 0) or (self.position < 0 and delta > 0):
+            await self.switch_position(delta)
 
+    async def open_position(self, delta):
+        """Open a new position based on delta."""
+        side = 'buy' if delta > 0 else 'sell'
+        direction = 'LONG' if delta > 0 else 'SHORT'
+        self.position = 1 if delta > 0 else -1
+        self.direction = direction
+        price = await self.blofin_apis.get_delta(self.maincoin, self.position)
+        print(f"{'Buy Long' if delta > 0 else 'Sell Short'}")
 
+        position_data = self.create_order_data(self.maincoin, direction.lower(), side, price)
+        await self.blofin_apis.place_order(position_data)
+
+    async def switch_position(self, delta):
+        """Switch position from long to short or vice versa."""
+        closing_side = 'short' if self.position > 0 else 'long'
+        closing_data = self.create_closing_data(closing_side)
+
+        await self.blofin_apis.close_position(closing_data)
+
+        # Switch direction after closing position
+        await self.open_position(delta)
+
+    def create_order_data(self, instId, positionSide, side, price):
+        """Helper function to create order data JSON."""
+        return json.dumps({
+            "instId": instId,
+            "marginMode": "isolated",
+            "positionSide": positionSide,
+            "side": side,
+            "price": price,
+            "size": "2",
+            "orderType": "limit"
+        })
+
+    def create_closing_data(self, positionSide):
+        """Helper function to create closing position data JSON."""
+        return json.dumps({
+            "instId": "BTC-USDT",
+            "marginMode": "isolated",
+            "positionSide": positionSide
+        })
+    
     def execute(self):
         self.get_trend(self.binancecoin)
         self.get_updown()
