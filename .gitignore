@@ -4,3 +4,4 @@ data/
 get-blofin/__pycache__/
 .venv/
 myenv/
+venv/

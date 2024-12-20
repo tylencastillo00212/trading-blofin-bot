@@ -19,18 +19,27 @@ class BlofinApis:
         self.env_path = base_path / '.env'
         self.data_path = base_path / 'data'
         load_dotenv(self.env_path)
-        self.base_url = os.getenv('BLOFIN_API_URL')
-        self.demo_base_url = os.getenv('DEMO_BLOFIN_API_URL')
-        self.web_socket_url = os.getenv('BLOFIN_WEBSOKET_URL')
         rate_limit = os.getenv('BLOFIN_API_RATE_LIMIT')
         self.bid_size = os.getenv('BID_SIZE')
         self.rate_limit = int(rate_limit)
         self.time_range = 60 * 1000 * self.rate_limit
         self.live_price = 0
+        self.work_mode = os.getenv('DEV_MODE')
 
+        self.base_url = os.getenv('BLOFIN_API_URL')
+        self.web_socket_url = os.getenv('BLOFIN_WEBSOKET_URL')
         self.api_key = os.getenv('BLOFIN_API_KEY')
         self.secret_key = os.getenv('BLOFIN_API_SECRET')
         self.passphrase = os.getenv('PASSPHRASE')
+        self.check_dev_mode()
+
+    def check_dev_mode(self):
+        if self.work_mode.upper() == 'YES' or self.work_mode.upper() == 'Y':
+            self.base_url = os.getenv('DEMO_BLOFIN_API_URL')
+            self.api_key = os.getenv('DEMO_BLOFIN_API_KEY')
+            self.secret_key = os.getenv('DEMO_BLOFIN_API_SECRET')
+            self.passphrase = os.getenv('DEMO_PASSPHRASE')
+            print(self.base_url)
 
     def get_header(self, request_path, method, body = ''):
         timestamp = str(int(time.time() * 1000))  # Convert to milliseconds
