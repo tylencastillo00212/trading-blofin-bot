@@ -220,6 +220,7 @@ class BlofinBot:
         """Switch position from long to short or vice versa."""
         closing_side = 'short' if self.position > 0 else 'long'
         closing_data = self.create_closing_data(closing_side)
+        self.position = 0
 
         await self.blofin_apis.close_position(closing_data)
 
