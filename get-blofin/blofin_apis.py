@@ -161,7 +161,7 @@ class BlofinApis:
         except Exception as e:
             print("An error occurred:", e)
 
-    async def get_delta(self, coin_name):
+    async def get_delta(self, coin_name, position = 0):
         request_path = '/api/v1/market/books'
         url = self.base_url + request_path
         async with aiohttp.ClientSession() as session:
@@ -186,6 +186,10 @@ class BlofinApis:
                         delta = ask_volumn - bid_volumn
                         result = 1 if delta > 0 else -1
                         print(f"-----delta for {coin_name}: {result}-----")
+                        if position > 0:
+                            return asks[13][0]
+                        elif position < 0:
+                            return bids[13][0]
                         return result
                     else:
                         print('No price data returned')

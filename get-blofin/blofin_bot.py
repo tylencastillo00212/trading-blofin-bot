@@ -201,28 +201,51 @@ class BlofinBot:
         if self.position == 0: 
             if delta > 0:
                 self.direction = 'LONG'
+                self.position = 1
+                price = self.blofin_apis.get_delta(self.maincoin, self.position)
                 print(f'Buy Long')
+                position_data = json.dumps({
+                    "instId": self.maincoin,
+                    "marginMode":"isolated",
+                    "positionSide":"long",
+                    "side":"buy",
+                    "price":price,
+                    "size":"2",
+                    "orderType": "limit"
+                })
             else: 
                 self.direction = 'SHORT'
+                self.position = -1
+                price = self.blofin_apis.get_delta(self.maincoin, self.position)
                 print(f'Sell Short')
+                position_data = json.dumps({
+                    "instId": self.maincoin,
+                    "marginMode":"isolated",
+                    "positionSide":"short",
+                    "side":"sell",
+                    "price":price,
+                    "size":"2",
+                    "orderType": "limit"
+                })
+            self.blofin_apis.place_order(position_data)
 
 
     def execute(self):
-        self.get_trend(self.binancecoin)
-        self.get_updown()
+        # self.get_trend(self.binancecoin)
+        # self.get_updown()
         # self.get_delta()
-        # position_data = json.dumps({
-        #     "instId":"BTC-USDT",
-        #     "marginMode":"cross",
-        #     "positionSide":"net",
-        #     "side":"sell",
-        #     "price":"0.0000000003885",
-        #     "size":"2",
-        #     "orderType": "limit"
-        # })
-        # self.blofin_apis.place_order(position_data)
         # self.blofin_apis.get_position()
-        asyncio.run(self.websocket_config(self.maincoin))
+        position_data = json.dumps({
+                    "instId": "BTC-USDT",
+                    "marginMode":"isolated",
+                    "positionSide":"short",
+                    "side":"sell",
+                    "price":"120000",
+                    "size":"2",
+                    "orderType": "limit"
+                })
+        self.blofin_apis.place_order(position_data)
+        # asyncio.run(self.websocket_config(self.maincoin))
         # self.get_delta()
         
     
