@@ -196,22 +196,6 @@ class BlofinApis:
             except Exception as e:
                 print("An error occurred:", e, f'for {coin_name}')
 
-    def place_order(self, data):
-        request_path = '/api/v1/trade/order'
-        url = self.base_url + request_path
-        print(url)
-        method = 'POST'
-        body = data
-        print(data)
-        header = self.get_header(request_path, method, body=body)
-        print(f'header: ', header)
-        response = requests.post(url, headers=header, data = body)
-        if response.status_code == 200:
-            data = response.json()
-            print(f'Response Data for setting an order: {data}')
-        else:
-            print('No price data returned')
-
     def set_position(self, data):
         request_path = '/api/v1/account/set-position-mode'
         url = self.base_url + request_path
@@ -228,19 +212,57 @@ class BlofinApis:
         else:
             print('No price data returned')
 
-    def get_position(self):
+    async def place_order(self, data):
+        request_path = '/api/v1/trade/order'
+        url = self.base_url + request_path
+        print(url)
+        method = 'POST'
+        body = data
+        print(data)
+        header = self.get_header(request_path, method, body=body)
+        print(f'header: ', header)
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=header, data=body) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    print(f'Response Data for setting an order: {data}')
+                else:
+                    print('No price data returned')
+
+    async def close_position(self, data):
+        request_path = '/api/v1/trade/cancel-order'
+        url = self.base_url + request_path
+        print(url)
+        method = 'POST'
+        body = data
+        print(data)
+        header = self.get_header(request_path, method, body=body)
+        print(f'header: ', header)
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=header, data=body) as response:
+                if response.status == 200:
+                    response_data = await response.json()
+                    print(f'Response Data for setting an order: {response_data}')
+                else:
+                    print('No price data returned')
+
+    async def get_position(self):
         request_path = '/api/v1/account/positions'
         url = self.base_url + request_path
         print(url)
         method = 'GET'
         header = self.get_header(request_path, method)
         print(f'header: ', header)
-        response = requests.get(url, headers=header)
-        if response.status_code == 200:
-            data = response.json()
-            print(f'Response Data for setting an order: {data}')
-        else:
-            print('No price data returned')
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=header) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    print(f'Response Data for setting an order: {data}')
+                else:
+                    print('No price data returned')
 
 # Use cases        
 # blofin = BlofinApis()

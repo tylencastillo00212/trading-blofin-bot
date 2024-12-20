@@ -188,6 +188,7 @@ class BlofinBot:
         try:
             self.trigger = 1
             delta = await self.get_delta()
+            await self.auto_trading(delta)
             self.trigger = 0
             print(f'--------------------')
             print(f"Delta value: {delta}")
@@ -197,12 +198,12 @@ class BlofinBot:
             print(f"Error fetching delta: {e}")
 
 
-    def auto_trading(self, delta):
+    async def auto_trading(self, delta):
         if self.position == 0: 
             if delta > 0:
                 self.direction = 'LONG'
                 self.position = 1
-                price = self.blofin_apis.get_delta(self.maincoin, self.position)
+                price = await self.blofin_apis.get_delta(self.maincoin, self.position)
                 print(f'Buy Long')
                 position_data = json.dumps({
                     "instId": self.maincoin,
@@ -216,7 +217,7 @@ class BlofinBot:
             else: 
                 self.direction = 'SHORT'
                 self.position = -1
-                price = self.blofin_apis.get_delta(self.maincoin, self.position)
+                price = await self.blofin_apis.get_delta(self.maincoin, self.position)
                 print(f'Sell Short')
                 position_data = json.dumps({
                     "instId": self.maincoin,
@@ -227,30 +228,37 @@ class BlofinBot:
                     "size":"2",
                     "orderType": "limit"
                 })
-            self.blofin_apis.place_order(position_data)
+            await self.blofin_apis.place_order(position_data)
 
 
     def execute(self):
-        # self.get_trend(self.binancecoin)
-        # self.get_updown()
+        self.get_trend(self.binancecoin)
+        self.get_updown()
         # self.get_delta()
         # self.blofin_apis.get_position()
-        position_data = json.dumps({
-                    "positionMode":"long_short_mode",
-                })
-        self.blofin_apis.set_position(position_data)
+        # position_data = json.dumps({
+        #             "positionMode":"long_short_mode",
+        #         })
+        # self.blofin_apis.set_position(position_data)
         
-        position_data = json.dumps({
-                    "instId": "BTC-USDT",
-                    "marginMode":"isolated",
-                    "positionSide":"short",
-                    "side":"sell",
-                    "price":"120000",
-                    "size":"2",
-                    "orderType": "limit"
-                })
-        self.blofin_apis.place_order(position_data)
-        # asyncio.run(self.websocket_config(self.maincoin))
+        # position_data = json.dumps({
+        #             "instId": "BTC-USDT",
+        #             "marginMode":"isolated",
+        #             "positionSide":"short",
+        #             "side":"sell",
+        #             "price":"120000",
+        #             "size":"2",
+        #             "orderType": "limit"
+        #         })
+        # self.blofin_apis.place_order(position_data)
+
+        # position_data = json.dumps({
+        #             "instId": "BTC-USDT",
+        #             "marginMode":"isolated",
+                #     "positionSide":"short",
+                # })
+        # self.blofin_apis.close_position(position_data)
+        asyncio.run(self.websocket_config(self.maincoin))
         # self.get_delta()
         
     
