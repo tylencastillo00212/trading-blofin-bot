@@ -236,6 +236,11 @@ class BlofinBot:
         # self.get_delta()
         # self.blofin_apis.get_position()
         position_data = json.dumps({
+                    "positionMode":"long_short_mode",
+                })
+        self.blofin_apis.set_position(position_data)
+        
+        position_data = json.dumps({
                     "instId": "BTC-USDT",
                     "marginMode":"isolated",
                     "positionSide":"short",

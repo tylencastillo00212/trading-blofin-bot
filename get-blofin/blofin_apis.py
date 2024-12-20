@@ -212,6 +212,22 @@ class BlofinApis:
         else:
             print('No price data returned')
 
+    def set_position(self, data):
+        request_path = '/api/v1/account/set-position-mode'
+        url = self.base_url + request_path
+        print(url)
+        method = 'POST'
+        body = data
+        print(data)
+        header = self.get_header(request_path, method, body=body)
+        print(f'header: ', header)
+        response = requests.post(url, headers=header, data = body)
+        if response.status_code == 200:
+            data = response.json()
+            print(f'Response Data for setting an order: {data}')
+        else:
+            print('No price data returned')
+
     def get_position(self):
         request_path = '/api/v1/account/positions'
         url = self.base_url + request_path
