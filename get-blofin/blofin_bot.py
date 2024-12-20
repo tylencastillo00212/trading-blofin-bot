@@ -140,9 +140,9 @@ class BlofinBot:
             # Close the connection when done
 
     def order_trigger(self, price):
-        print(f'upline index: {self.upline_index}')
+        # print(f'upline index: {self.upline_index}')
         length = len(self.horizon_lines)
-        print(length)
+        # print(length)
         if price > self.upline_val:
             self.upline_index += 1
             self.downline_index += 1
