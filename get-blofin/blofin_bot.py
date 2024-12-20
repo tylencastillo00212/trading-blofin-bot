@@ -177,7 +177,7 @@ class BlofinBot:
         if 'data' in data:
             price = float(data['data'][0]['price'])
             self.live_price = price
-            print(f"web socket data: {self.live_price}")
+            # print(f"web socket data: {self.live_price}")
             trigger = self.order_trigger(price)
             if (trigger):
                 # delta = self.get_delta()
