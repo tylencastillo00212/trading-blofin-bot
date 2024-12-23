@@ -108,7 +108,7 @@ class BlofinBot:
                 print(f"Error fetching delta for {coin}: {e}")
         
         result_status = 'Positive' if result > 0 else 'Negative' if result < 0 else 'Zero'
-        percent = ((len(coins) - result) / 2 + result) / len(coins) * 100
+        percent = round(((len(coins) - result) / 2 + result) / len(coins) * 100, 2)
         # Log the data to a CSV file
         log_data = {
             'time': datetime.datetime.now().strftime(self.timeformat),

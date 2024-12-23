@@ -232,7 +232,7 @@ class BlofinApis:
                     print('No price data returned')
 
     async def close_position(self, data):
-        request_path = '/api/v1/trade/cancel-order'
+        request_path = '/api/v1/trade/close-position'
         url = self.base_url + request_path
         print(url)
         method = 'POST'
