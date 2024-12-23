@@ -6,7 +6,7 @@ from .trend import GetTrend
 from pathlib import Path
 from dotenv import load_dotenv
 import pandas as pd
-from datetime import datetime
+import datetime
 from .blofin_apis import BlofinApis
 import time
 import json
@@ -111,7 +111,7 @@ class BlofinBot:
         percent = ((len(coins) - result) / 2 + result) / len(coins) * 100
         # Log the data to a CSV file
         log_data = {
-            'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'time': datetime.datetime.now().strftime(self.timeformat),
             'percent': percent,
             'result': result,
             'result_status': result_status
@@ -285,6 +285,7 @@ class BlofinBot:
         await self.get_updown()
 
         self.first_cycle_completed.set()
+        await asyncio.sleep(21600)
 
         while True:
             await self.get_trend(self.binancecoin)
