@@ -27,6 +27,7 @@ class BlofinApis:
         self.work_mode = os.getenv('DEV_MODE')
 
         self.base_url = os.getenv('BLOFIN_API_URL')
+        self.public_url = os.getenv('BLOFIN_API_URL')
         self.web_socket_url = os.getenv('BLOFIN_WEBSOKET_URL')
         self.api_key = os.getenv('BLOFIN_API_KEY')
         self.secret_key = os.getenv('BLOFIN_API_SECRET')
@@ -67,7 +68,7 @@ class BlofinApis:
         
     async def get_coins_list(self, type='apis'):
         request_path = '/api/v1/market/instruments'
-        url = self.base_url + request_path
+        url = self.public_url + request_path
         print(url)
         coins_list_path = self.data_path / 'coins.csv'
         if type == 'volumn':
@@ -163,7 +164,7 @@ class BlofinApis:
 
     async def get_delta(self, coin_name, position = 0):
         request_path = '/api/v1/market/books'
-        url = self.base_url + request_path
+        url = self.public_url + request_path
         async with aiohttp.ClientSession() as session:
             try: 
                 if not coin_name:

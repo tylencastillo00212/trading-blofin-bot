@@ -31,6 +31,9 @@ class BlofinBot:
         self.timeformat = os.getenv('DATETIME_FORMAT')
         self.maincoin = os.getenv('MAIN_COIN')
         self.horizon_num = os.getenv('HORIZON_NUM')
+        self.level_1 = os.getenv('LEVEL_1')
+        self.level_2 = os.getenv('LEVEL_2')
+        self.level_3 = os.getenv('LEVEL_3')
         self.binancecoin = self.maincoin.replace("-", "/")
         self.num_threads = int(num_threads)
         self.percent = 0
@@ -110,6 +113,12 @@ class BlofinBot:
         result_status = 'Positive' if result > 0 else 'Negative' if result < 0 else 'Zero'
         percent = round(((len(coins) - result) / 2 + result) / len(coins) * 100, 2)
         # Log the data to a CSV file
+        if abs(percent - 50) < 15:
+            self.level = self.level_1
+        elif abs(percent -50) < 30:
+            self.level = self.level_2
+        else:
+            self.level = self.level_3
         log_data = {
             'time': datetime.datetime.now().strftime(self.timeformat),
             'percent': percent,
@@ -246,6 +255,8 @@ class BlofinBot:
         price = await self.blofin_apis.get_delta(self.maincoin, self.position)
         print(f"{'Buy Long' if delta > 0 else 'Sell Short'}")
 
+        leverage_data = self.create_leverage_data(self.maincoin, direction.lower(), self.level)
+        self.blofin_apis.set_leverage(leverage_data)
         position_data = self.create_order_data(self.maincoin, direction.lower(), side, price)
         result = await self.blofin_apis.place_order(position_data)
         if result:
@@ -278,6 +289,15 @@ class BlofinBot:
         """Helper function to create closing position data JSON."""
         return json.dumps({
             "instId": coin,
+            "marginMode": "isolated",
+            "positionSide": positionSide
+        })
+    
+    def create_leverage_data(self, coin, positionSide, leverage_num):
+        """Helper function to create leverage data JSON."""
+        return json.dumps({
+            "instId": coin,
+            "leverage": leverage_num,
             "marginMode": "isolated",
             "positionSide": positionSide
         })
