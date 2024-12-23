@@ -219,7 +219,7 @@ class BlofinBot:
     async def switch_position(self, delta):
         """Switch position from long to short or vice versa."""
         closing_side = 'short' if self.position > 0 else 'long'
-        closing_data = self.create_closing_data(closing_side)
+        closing_data = self.create_closing_data(self.maincoin, closing_side)
         self.position = 0
 
         await self.blofin_apis.close_position(closing_data)
@@ -239,43 +239,32 @@ class BlofinBot:
             "orderType": "limit"
         })
 
-    def create_closing_data(self, positionSide):
+    def create_closing_data(self, coin, positionSide):
         """Helper function to create closing position data JSON."""
         return json.dumps({
-            "instId": "BTC-USDT",
+            "instId": coin,
             "marginMode": "isolated",
             "positionSide": positionSide
         })
     
-    def execute(self):
-        self.get_trend(self.binancecoin)
-        self.get_updown()
-        # self.get_delta()
-        # self.blofin_apis.get_position()
-        # position_data = json.dumps({
-        #             "positionMode":"long_short_mode",
-        #         })
-        # self.blofin_apis.set_position(position_data)
-        
-        # position_data = json.dumps({
-        #             "instId": "BTC-USDT",
-        #             "marginMode":"isolated",
-        #             "positionSide":"short",
-        #             "side":"sell",
-        #             "price":"120000",
-        #             "size":"2",
-        #             "orderType": "limit"
-        #         })
-        # self.blofin_apis.place_order(position_data)
+    async def periodic_tasks(self):
+        while True:
+            await self.get_trend(self.binancecoin)
+            await self.get_updown()
 
-        # position_data = json.dumps({
-        #             "instId": "BTC-USDT",
-        #             "marginMode":"isolated",
-                #     "positionSide":"short",
-                # })
-        # self.blofin_apis.close_position(position_data)
-        asyncio.run(self.websocket_config(self.maincoin))
-        # self.get_delta()
+            await asyncio.sleep(21600)
+    
+    def execute(self):
+        loop = asyncio.get_event_loop()
+        try:
+            loop.run_until_complete(asyncio.gather(
+                self.periodic_tasks(),
+                self.websocket_config(self.maincoin)
+            ))
+        except KeyboardInterrupt:
+            pass
+        finally:
+            loop.close()
         
     
 blofin_bot = BlofinBot()

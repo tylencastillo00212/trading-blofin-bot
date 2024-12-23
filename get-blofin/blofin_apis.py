@@ -264,6 +264,24 @@ class BlofinApis:
                 else:
                     print('No price data returned')
 
+    async def set_leverage(self, data):
+        request_path = '/api/v1/account/set-leverage'
+        url = self.base_url + request_path
+        print(url)
+        method = 'POST'
+        body = data
+        print(data)
+        header = self.get_header(request_path, method, body=body)
+        print(f'header: ', header)
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=header, data=body) as response:
+                if response.status == 200:
+                    response_data = await response.json()
+                    print(f'Response Data for setting an order: {response_data}')
+                else:
+                    print('No price data returned')
+
 # Use cases        
 # blofin = BlofinApis()
 # blofin.get_coins_list()
