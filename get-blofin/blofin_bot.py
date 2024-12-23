@@ -49,6 +49,7 @@ class BlofinBot:
         self.direction = 'NONE'
         self.trigger = 0
         self.first_cycle_completed = asyncio.Event()
+        self.orderId = ""
 
     async def get_trend(self, currency):
         print('----------------------------------------------------')
@@ -68,7 +69,6 @@ class BlofinBot:
         print(f'-----------End Calculation of {currency}------------')
         print('----------------------------------------------------')
         await asyncio.sleep(1)
-        return 
     
     async def get_updown(self):
         lastprice = self.blofin_apis.get_tick_price(self.maincoin)
@@ -247,12 +247,14 @@ class BlofinBot:
         print(f"{'Buy Long' if delta > 0 else 'Sell Short'}")
 
         position_data = self.create_order_data(self.maincoin, direction.lower(), side, price)
-        await self.blofin_apis.place_order(position_data)
+        result = await self.blofin_apis.place_order(position_data)
+        if result:
+            self.orderId = result['data'][0]['orderId']
 
     async def switch_position(self, delta):
         """Switch position from long to short or vice versa."""
         closing_side = 'short' if self.position > 0 else 'long'
-        closing_data = self.create_closing_data(self.maincoin, closing_side)
+        closing_data = self.create_closing_data(self.orderId, self.maincoin, closing_side)
         self.position = 0
 
         await self.blofin_apis.close_position(closing_data)
@@ -272,10 +274,11 @@ class BlofinBot:
             "orderType": "limit"
         })
 
-    def create_closing_data(self, coin, positionSide):
+    def create_closing_data(self, orderId, coin, positionSide):
         """Helper function to create closing position data JSON."""
         return json.dumps({
             "instId": coin,
+            "orderId": orderId,
             "marginMode": "isolated",
             "positionSide": positionSide
         })

@@ -227,6 +227,7 @@ class BlofinApis:
                 if response.status == 200:
                     data = await response.json()
                     print(f'Response Data for setting an order: {data}')
+                    return data
                 else:
                     print('No price data returned')
 
