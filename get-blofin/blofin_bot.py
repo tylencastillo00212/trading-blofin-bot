@@ -47,7 +47,7 @@ class BlofinBot:
         self.position = 0
         self.direction = 'NONE'
         self.trigger = 0
-
+        self.first_cycle_completed = asyncio.Event()
 
     def get_trend(self, currency):
         print('----------------------------------------------------')
@@ -104,10 +104,24 @@ class BlofinBot:
             except Exception as e:
                 print(f"Error fetching delta for {coin}: {e}")
         
+        result_status = 'Positive' if result > 0 else 'Negative' if result < 0 else 'Zero'
+        percent = ((len(coins) - result) / 2 + result) / len(coins) * 100
+        # Log the data to a CSV file
+        log_data = {
+            'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'percent': len(coins),
+            'result': result,
+            'result_status': result_status
+        }
+        
+        self.log_to_csv(log_data)
+
         print(f'Result for getting delta: {result}')
         return result
     
     async def websocket_config(self, coin):
+
+        await self.first_cycle_completed.wait()
         url = self.blofin_apis.web_socket_url + 'public'
         params = {
             "op": "subscribe",
@@ -177,7 +191,7 @@ class BlofinBot:
         if 'data' in data:
             price = float(data['data'][0]['price'])
             self.live_price = price
-            # print(f"web socket data: {self.live_price}")
+            print(f"----Web socket data: {self.live_price}----")
             trigger = self.order_trigger(price)
             if (trigger):
                 # delta = self.get_delta()
@@ -248,6 +262,11 @@ class BlofinBot:
         })
     
     async def periodic_tasks(self):
+        await self.get_trend(self.binancecoin)
+        await self.get_updown()
+
+        self.first_cycle_completed.set()
+
         while True:
             await self.get_trend(self.binancecoin)
             await self.get_updown()
