@@ -13,6 +13,7 @@ import json
 import websockets
 import asyncio
 import sys
+import csv
 
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -49,7 +50,7 @@ class BlofinBot:
         self.trigger = 0
         self.first_cycle_completed = asyncio.Event()
 
-    def get_trend(self, currency):
+    async def get_trend(self, currency):
         print('----------------------------------------------------')
         print(f'---------Start Calculation of {currency}------------')
         print('----------------------------------------------------')
@@ -66,9 +67,10 @@ class BlofinBot:
         print('----------------------------------------------------')
         print(f'-----------End Calculation of {currency}------------')
         print('----------------------------------------------------')
+        await asyncio.sleep(1)
         return 
     
-    def get_updown(self):
+    async def get_updown(self):
         lastprice = self.blofin_apis.get_tick_price(self.maincoin)
         length = len(self.horizon_lines) 
         if not len(self.horizon_lines):
@@ -91,6 +93,7 @@ class BlofinBot:
         print(f'downline_val: {self.downline_val}')
         print(f'upline_index: {self.upline_index}')
         print(f'upline_val: {self.upline_val}')
+        await asyncio.sleep(1)
 
     async def get_delta(self):
         coins = await self.blofin_apis.get_coins_list(type='volumn')
@@ -109,7 +112,7 @@ class BlofinBot:
         # Log the data to a CSV file
         log_data = {
             'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'percent': len(coins),
+            'percent': percent,
             'result': result,
             'result_status': result_status
         }
@@ -118,6 +121,22 @@ class BlofinBot:
 
         print(f'Result for getting delta: {result}')
         return result
+    
+    def log_to_csv(self, data):
+        # Define the file name
+        file_name = self.data_path / 'delta_log.csv'
+        
+        # Write to CSV file
+        with open(file_name, 'a', newline='', encoding='utf-8') as csvfile:
+            fieldnames = ['time', 'percent', 'result', 'result_status']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+            # Write header only if the file is empty
+            if csvfile.tell() == 0:
+                writer.writeheader()
+            
+            # Write the data row
+            writer.writerow(data)
     
     async def websocket_config(self, coin):
 
