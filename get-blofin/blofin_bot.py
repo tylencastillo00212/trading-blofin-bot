@@ -254,7 +254,7 @@ class BlofinBot:
     async def switch_position(self, delta):
         """Switch position from long to short or vice versa."""
         closing_side = 'short' if self.position > 0 else 'long'
-        closing_data = self.create_closing_data(self.orderId, self.maincoin, closing_side)
+        closing_data = self.create_closing_data(self.maincoin, closing_side)
         self.position = 0
 
         await self.blofin_apis.close_position(closing_data)
@@ -274,11 +274,10 @@ class BlofinBot:
             "orderType": "limit"
         })
 
-    def create_closing_data(self, orderId, coin, positionSide):
+    def create_closing_data(self, coin, positionSide):
         """Helper function to create closing position data JSON."""
         return json.dumps({
             "instId": coin,
-            "orderId": orderId,
             "marginMode": "isolated",
             "positionSide": positionSide
         })
